@@ -3,9 +3,13 @@ import type { StepView } from "../lib/types";
 import { svgUrl } from "../lib/format";
 import { EmojiArt } from "./Fun";
 
-/** Mỗi đáp án có hình, chữ cái và màu riêng, để không chỉ dựa vào màu sắc. */
+/**
+ * Mỗi đáp án có hình, chữ cái và màu riêng, để không chỉ dựa vào màu sắc.
+ * Bốn màu là bộ bốn cách đều trên vòng màu, xuất phát từ màu brand: hồng 341°, vàng 81°, xanh lá 147°, xanh dương 259°
+ * (cách nhau 66–112°), cùng quy ước đỏ/xanh/vàng/lục quen thuộc của các trò quiz.
+ */
 const MARKS: Array<{ icon: IconName; theme: DockIconTheme; card: CardColor; letter: string }> = [
-  { icon: "icon-triangle-solid", theme: "orange", card: "orange", letter: "A" },
+  { icon: "icon-triangle-solid", theme: "pink", card: "brand", letter: "A" },
   { icon: "icon-diamond-solid", theme: "blue", card: "blue", letter: "B" },
   { icon: "icon-circle-solid", theme: "yellow", card: "yellow", letter: "C" },
   { icon: "icon-square-solid", theme: "green", card: "green", letter: "D" },
@@ -22,20 +26,22 @@ interface AnswersProps {
   onChoose?: (index: number) => void;
   /** Màn chiếu dùng chữ to hơn. */
   large?: boolean;
+  /** Màn chiếu thấp: lề trong thẻ và khoảng cách giữa các thẻ nhỏ hơn một bậc, chữ giữ nguyên cỡ. */
+  dense?: boolean;
 }
 
-export function Answers({ step, state, chosen = null, onChoose, large = false }: AnswersProps) {
+export function Answers({ step, state, chosen = null, onChoose, large = false, dense = false }: AnswersProps) {
   const options = step.options ?? [];
   const counts = step.counts ?? null;
   const total = counts ? counts.reduce((sum, count) => sum + count, 0) : 0;
   const isPoll = step.game === "poll";
   const pictures = step.images ?? null;
   const art = step.optionArt ?? null;
-  const bigArt = Boolean(art) && step.game === "poll";
+  const bigArt = Boolean(art) && (step.game === "poll" || step.game === "truth");
   const columns = pictures || options.length === 2 ? 2 : { mobile: 1, tablet: 2, desktop: 2 };
 
   return (
-    <Grid columns={columns} gap={large ? "md" : "sm"}>
+    <Grid columns={columns} gap={large && !dense ? "md" : "sm"}>
       {options.map((label, index) => {
         const mark = MARKS[index] ?? MARKS[0];
         const isRight = state === "reveal" && (isPoll ? (step.majority ?? []).includes(index) : step.answer === index);
@@ -48,7 +54,7 @@ export function Answers({ step, state, chosen = null, onChoose, large = false }:
             key={index}
             theme="subtle"
             color={mark.card}
-            spacing={large ? "md" : "sm"}
+            spacing={large && !dense ? "md" : "sm"}
             selected={state === "reveal" ? isRight : isChosen}
             onClick={clickable ? () => onChoose(index) : undefined}
             aria-label={clickable ? `Chọn ${name}` : undefined}
@@ -61,7 +67,7 @@ export function Answers({ step, state, chosen = null, onChoose, large = false }:
               )}
               {bigArt && art?.[index] && (
                 <Stack align="center" paddingY={large ? "md" : "xs"}>
-                  <EmojiArt size={large ? "xl" : "lg"}>{art[index]}</EmojiArt>
+                  <EmojiArt size="lg">{art[index]}</EmojiArt>
                 </Stack>
               )}
               <Stack direction="row" gap={pictures && !large ? "xs" : "sm"} align="center">

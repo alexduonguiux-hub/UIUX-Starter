@@ -12,6 +12,7 @@
     "build": "vite build",
     "start": "node server/index.js",
     "typecheck": "tsc --noEmit",
+    "emoji": "node scripts/emoji-assets.mjs",
     "zen:check": "zen-usage --css",
     "test": "node --test \"tests/*.test.js\"",
     "check": "npm run typecheck && npm run zen:check && npm test"

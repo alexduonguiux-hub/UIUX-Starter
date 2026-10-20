@@ -294,3 +294,38 @@ export const REBUS = [
   { id: "pho", category: "Món ăn", emoji: "🍜🐄", options: ["Bún chả", "Phở bò", "Hủ tiếu", "Mì Quảng"], answer: 1 },
   { id: "comga", category: "Món ăn", emoji: "🍚🐔", options: ["Cơm tấm", "Cơm gà", "Xôi gà", "Cháo gà"], answer: 1 },
 ];
+
+/**
+ * Thật hay đùa? Một câu nói vui, học viên đoán là sự thật hay bịa.
+ * @type {Array<{ id: string, emoji: string, statement: string, truth: boolean, explain: string }>}
+ */
+export const TRUTHS = [
+  { id: "octopus", emoji: "🐙", statement: "Bạch tuộc có 3 trái tim.", truth: true, explain: "Thật! Hai tim bơm máu qua mang, một tim bơm máu đi khắp cơ thể." },
+  { id: "banana", emoji: "🍌", statement: "Theo thực vật học, quả chuối là một loại quả mọng.", truth: true, explain: "Thật! Còn dâu tây thì lại không phải quả mọng." },
+  { id: "penguin", emoji: "🐧", statement: "Chim cánh cụt sống ở Bắc Cực.", truth: false, explain: "Đùa thôi! Chim cánh cụt sống ở Nam bán cầu, nhiều nhất ở Nam Cực." },
+  { id: "brain", emoji: "🧠", statement: "Con người chỉ dùng 10% bộ não.", truth: false, explain: "Đùa thôi! Hầu như vùng nào của não cũng hoạt động mỗi ngày." },
+  { id: "giraffe", emoji: "🦒", statement: "Cổ hươu cao cổ có số đốt sống bằng cổ con người.", truth: true, explain: "Thật! Cả hai đều có 7 đốt sống cổ, chỉ là đốt của hươu dài hơn nhiều." },
+  { id: "honey", emoji: "🍯", statement: "Mật ong để hàng nghìn năm vẫn có thể ăn được.", truth: true, explain: "Thật! Người ta từng tìm thấy mật ong còn tốt trong lăng mộ Ai Cập cổ." },
+  { id: "wall", emoji: "🌕", statement: "Từ Mặt Trăng có thể nhìn thấy Vạn Lý Trường Thành bằng mắt thường.", truth: false, explain: "Đùa thôi! Bức tường quá hẹp để thấy từ khoảng cách đó." },
+  { id: "goldfish", emoji: "🐠", statement: "Cá vàng chỉ nhớ được 3 giây.", truth: false, explain: "Đùa thôi! Cá vàng nhớ được nhiều tháng và còn học được mẹo." },
+  { id: "lightning", emoji: "⚡", statement: "Sét không bao giờ đánh hai lần vào cùng một chỗ.", truth: false, explain: "Đùa thôi! Các toà nhà cao bị sét đánh nhiều lần mỗi năm." },
+  { id: "shark", emoji: "🦈", statement: "Cá mập có mặt trên Trái Đất trước cả cây cối.", truth: true, explain: "Thật! Cá mập xuất hiện khoảng 450 triệu năm trước, cây gỗ thì sau đó." },
+  { id: "carrot", emoji: "🥕", statement: "Ăn thật nhiều cà rốt giúp nhìn rõ trong bóng tối.", truth: false, explain: "Đùa thôi! Cà rốt tốt cho mắt nhưng không cho bạn khả năng nhìn đêm." },
+  { id: "flamingo", emoji: "🦩", statement: "Hồng hạc có màu hồng là nhờ thức ăn của chúng.", truth: true, explain: "Thật! Tôm và tảo chúng ăn chứa sắc tố làm lông có màu hồng." },
+];
+
+/**
+ * Đoán gần đúng: kéo thanh trượt để đoán một con số. Càng gần đáp án càng nhiều điểm.
+ * @type {Array<{ id: string, emoji: string, prompt: string, min: number, max: number, step: number, answer: number, unit: string, explain?: string }>}
+ */
+export const ESTIMATES = [
+  { id: "fansipan", emoji: "🏔️", prompt: "Đỉnh Fansipan cao bao nhiêu mét?", min: 1000, max: 5000, step: 10, answer: 3143, unit: "m", explain: "Fansipan cao 3.143 m, nóc nhà Đông Dương." },
+  { id: "minutes", emoji: "⏰", prompt: "Một ngày có bao nhiêu phút?", min: 0, max: 3000, step: 10, answer: 1440, unit: "phút", explain: "24 giờ × 60 phút = 1.440 phút." },
+  { id: "piano", emoji: "🎹", prompt: "Một cây đàn piano tiêu chuẩn có bao nhiêu phím?", min: 20, max: 150, step: 1, answer: 88, unit: "phím", explain: "52 phím trắng và 36 phím đen." },
+  { id: "chess", emoji: "♟️", prompt: "Một bàn cờ vua có bao nhiêu ô?", min: 10, max: 150, step: 1, answer: 64, unit: "ô", explain: "8 hàng × 8 cột = 64 ô." },
+  { id: "sun", emoji: "☀️", prompt: "Ánh sáng Mặt Trời mất khoảng bao nhiêu phút để tới Trái Đất?", min: 0, max: 60, step: 1, answer: 8, unit: "phút", explain: "Khoảng 8 phút 20 giây." },
+  { id: "bones", emoji: "🦴", prompt: "Cơ thể người trưởng thành có bao nhiêu chiếc xương?", min: 50, max: 400, step: 1, answer: 206, unit: "chiếc", explain: "206 chiếc. Em bé mới sinh có nhiều hơn, rồi một số xương liền lại." },
+  { id: "longbien", emoji: "🌉", prompt: "Cầu Long Biên được khánh thành năm nào?", min: 1850, max: 1950, step: 1, answer: 1902, unit: "", explain: "Cầu Long Biên khánh thành năm 1902." },
+  { id: "eiffel", emoji: "🗼", prompt: "Tháp Eiffel cao khoảng bao nhiêu mét, tính cả ăng-ten?", min: 100, max: 600, step: 5, answer: 330, unit: "m", explain: "Khoảng 330 m tính cả ăng-ten trên đỉnh." },
+  { id: "teeth", emoji: "🦷", prompt: "Người trưởng thành có bao nhiêu chiếc răng, tính cả răng khôn?", min: 10, max: 60, step: 1, answer: 32, unit: "chiếc", explain: "32 chiếc, gồm 4 răng khôn." },
+];

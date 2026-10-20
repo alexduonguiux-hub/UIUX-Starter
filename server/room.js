@@ -1,6 +1,6 @@
 // Một phòng chơi: người chơi, team, các bước của buổi chơi, điểm số và trạng thái gửi cho từng màn hình.
 import { randomBytes, randomUUID } from "node:crypto";
-import { AB, POLLS, QUIZ, REBUS } from "../shared/content.js";
+import { AB, ESTIMATES, POLLS, QUIZ, REBUS, TRUTHS } from "../shared/content.js";
 import {
   AVATARS,
   CENTER_ROUNDS,
@@ -11,23 +11,45 @@ import {
   GAMES,
   GAME_ORDER,
   MAX_TEAMS,
+  MEMORY_PAIRS,
+  MEMORY_POINTS,
+  MEMORY_TIME_BONUS,
   MIN_TEAMS,
   NAME_MAX,
   PACKS,
   POLL_POINTS,
   REACTION_ROUNDS,
+  TAP_MAX_RATE,
+  TAP_POINTS,
   TEAM_PRESETS,
   WHOIS_AUTHOR_POINTS,
   answerPoints,
   centerPoints,
   centerTargets,
   colorLevel,
+  estimatePoints,
+  memoryDeck,
   reactionPoints,
   shuffle,
 } from "../shared/games.js";
 
 /** Số câu tối đa mỗi trò hỏi đáp (theo nội dung đang có). */
-export const LIMITS = { poll: POLLS.length, whois: 10, rebus: REBUS.length, quiz: QUIZ.length, ab: AB.length, reaction: 1, color: 1, center: 1 };
+export const LIMITS = {
+  poll: POLLS.length,
+  whois: 10,
+  truth: TRUTHS.length,
+  rebus: REBUS.length,
+  estimate: ESTIMATES.length,
+  quiz: QUIZ.length,
+  ab: AB.length,
+  reaction: 1,
+  tap: 1,
+  memory: 1,
+  color: 1,
+  center: 1,
+};
+/** Câu hỏi lấy từ danh sách nội dung có sẵn (Ai là ai? lấy từ học viên). */
+const POOLS = { poll: POLLS, truth: TRUTHS, rebus: REBUS, estimate: ESTIMATES, quiz: QUIZ, ab: AB };
 /** Thời gian chờ thêm cho câu trả lời đến muộn do mạng. */
 const GRACE_MS = 600;
 const TOP_FOR_PLAYERS = 5;
@@ -40,7 +62,7 @@ const clampInt = (value, min, max, fallback) => {
 
 /** Kiểm tra và chuẩn hoá cài đặt phòng gửi lên từ trình duyệt. */
 export function normalizeSettings(input = {}) {
-  const pack = ["quick", "full", "uiux", "custom"].includes(input.pack) ? input.pack : "quick";
+  const pack = ["quick", "full", "active", "uiux", "custom"].includes(input.pack) ? input.pack : "quick";
   const source = pack === "custom" ? input.games ?? {} : PACKS[pack].games;
   const games = {};
   for (const id of GAME_ORDER) games[id] = clampInt(source[id], 0, LIMITS[id], 0);
@@ -240,7 +262,7 @@ export class Room {
         steps.push({ id: `s${steps.length}`, kind: "challenge", game, section, seed: randomBytes(6).toString("hex"), seconds: GAMES[game].seconds });
         continue;
       }
-      const items = game === "whois" ? this.whoisItems(count) : shuffle(game === "quiz" ? QUIZ : game === "ab" ? AB : game === "rebus" ? REBUS : POLLS, this.random).slice(0, count);
+      const items = game === "whois" ? this.whoisItems(count) : shuffle(POOLS[game], this.random).slice(0, count);
       items.forEach((item, index) => {
         steps.push({ id: `s${steps.length}`, kind: "question", game, section, number: index + 1, total: items.length, seconds: GAMES[game].seconds, ...this.prepareItem(game, item) });
       });
@@ -271,6 +293,26 @@ export class Room {
         authorId: item.author.id,
         visual: { type: "quote", text: item.author.fact },
         explain: `Đó là ${item.author.name}! Hãy hỏi thêm bạn ấy trong giờ nghỉ nhé.`,
+      };
+    }
+    if (game === "truth") {
+      return {
+        prompt: item.statement,
+        options: ["Thật", "Đùa"],
+        optionArt: ["✅", "🙅"],
+        answer: item.truth ? 0 : 1,
+        explain: item.explain,
+        visual: { type: "emoji", text: item.emoji, caption: "" },
+      };
+    }
+    if (game === "estimate") {
+      return {
+        prompt: item.prompt,
+        options: [],
+        range: { min: item.min, max: item.max, step: item.step, unit: item.unit },
+        answer: item.answer,
+        explain: item.explain ?? null,
+        visual: { type: "emoji", text: item.emoji, caption: "" },
       };
     }
     if (game === "rebus") {
@@ -394,7 +436,10 @@ export class Room {
     if (this.phase !== "question" || step?.id !== stepId) return { error: "Câu hỏi đã đóng." };
     if (this.current.answers.has(playerId)) return { error: "Bạn đã trả lời rồi." };
     if (step.authorId === playerId) return { error: "Đây là điều bạn viết, chờ mọi người đoán nhé!" };
-    if (!Number.isInteger(choice) || choice < 0 || choice >= step.options.length) return { error: "Lựa chọn không hợp lệ." };
+    if (step.range) {
+      const { min, max } = step.range;
+      if (typeof choice !== "number" || !Number.isFinite(choice) || choice < min || choice > max) return { error: "Con số không hợp lệ." };
+    } else if (!Number.isInteger(choice) || choice < 0 || choice >= step.options.length) return { error: "Lựa chọn không hợp lệ." };
     const now = this.now();
     if (now > this.current.endsAt + GRACE_MS) return { error: "Hết giờ rồi." };
     this.current.answers.set(playerId, { choice, at: Math.min(now, this.current.endsAt) });
@@ -415,7 +460,7 @@ export class Room {
       clearTimeout(this.timer);
       this.timer = setTimeout(() => this.reveal(), 400);
     }
-    const rounds = this.step?.game === "center" ? CENTER_ROUNDS : this.step?.game === "reaction" ? REACTION_ROUNDS : null;
+    const rounds = this.step?.game === "center" ? CENTER_ROUNDS : this.step?.game === "reaction" ? REACTION_ROUNDS : this.step?.game === "memory" ? 1 : null;
     if (this.phase === "challenge" && rounds && online.every((p) => (this.current.challenge.get(p.id)?.round ?? 0) >= rounds)) {
       clearTimeout(this.timer);
       this.timer = setTimeout(() => this.endChallenge(), 1200);
@@ -428,7 +473,7 @@ export class Room {
     const step = this.step;
     const { answers } = this.current;
     const counts = step.options.map(() => 0);
-    for (const { choice } of answers.values()) counts[choice] += 1;
+    if (!step.range) for (const { choice } of answers.values()) counts[choice] += 1;
     const best = Math.max(...counts);
     const majority = step.game === "poll" && best > 0 ? counts.map((count, index) => (count === best ? index : -1)).filter((i) => i >= 0) : [];
     const limitMs = step.seconds * 1000;
@@ -441,7 +486,10 @@ export class Room {
         player.last = { stepId: step.id, answered: false, author: true, choice: null, correct: false, points: WHOIS_AUTHOR_POINTS };
         continue;
       }
-      if (entry && step.game === "poll") {
+      if (entry && step.range) {
+        points = estimatePoints(entry.choice, step.answer, step.range.min, step.range.max);
+        correct = points >= 750;
+      } else if (entry && step.game === "poll") {
         correct = majority.includes(entry.choice);
         points = correct ? POLL_POINTS : 0;
       } else if (entry) {
@@ -452,8 +500,16 @@ export class Room {
       player.score += points;
       player.last = { stepId: step.id, answered: Boolean(entry), choice: entry?.choice ?? null, correct, points };
     }
-    this.current.counts = counts;
+    this.current.counts = step.range ? null : counts;
     this.current.majority = majority;
+    if (step.range) {
+      const guesses = [...answers.entries()].map(([id, entry]) => ({ player: this.players.get(id), guess: entry.choice })).filter((g) => g.player);
+      const ranked = guesses.sort((a, b) => Math.abs(a.guess - step.answer) - Math.abs(b.guess - step.answer));
+      this.current.estimate = {
+        average: guesses.length ? Math.round(guesses.reduce((sum, g) => sum + g.guess, 0) / guesses.length) : null,
+        closest: ranked.slice(0, 3).map((g) => ({ id: g.player.id, name: g.player.name, avatar: g.player.avatar, guess: g.guess })),
+      };
+    }
     this.phase = "reveal";
     this.touch();
   }
@@ -488,6 +544,42 @@ export class Room {
       return { ok: hit, state: this.publicChallengeState(state) };
     }
 
+    if (step.game === "tap") {
+      const taps = Math.floor(Number(move.taps));
+      if (!Number.isFinite(taps) || taps < 0) return { error: "Số lần bấm không hợp lệ." };
+      // Không tính quá TAP_MAX_RATE lần mỗi giây kể từ lúc bắt đầu (chặn bấm bằng máy).
+      const allowed = Math.floor((TAP_MAX_RATE * (Math.min(now, this.current.endsAt) - this.current.startsAt)) / 1000);
+      const accepted = Math.max(0, Math.min(taps, allowed - (state.taps ?? 0)));
+      state.taps = (state.taps ?? 0) + accepted;
+      state.score += accepted * TAP_POINTS;
+      player.score += accepted * TAP_POINTS;
+      if (accepted) this.touch();
+      return { ok: true, accepted, state: this.publicChallengeState(state) };
+    }
+
+    if (step.game === "memory") {
+      const deck = memoryDeck(step.seed);
+      const a = Number(move.a);
+      const b = Number(move.b);
+      state.matched = state.matched ?? [];
+      const valid = Number.isInteger(a) && Number.isInteger(b) && a !== b && deck[a] !== undefined && deck[b] !== undefined;
+      if (!valid || state.matched.includes(a) || state.matched.includes(b) || state.round >= 1) return { ok: false, state: this.publicChallengeState(state) };
+      if (deck[a] !== deck[b]) return { ok: false, state: this.publicChallengeState(state) };
+      state.matched.push(a, b);
+      state.score += MEMORY_POINTS;
+      player.score += MEMORY_POINTS;
+      let bonus = 0;
+      if (state.matched.length === MEMORY_PAIRS * 2) {
+        bonus = Math.max(0, Math.ceil((this.current.endsAt - now) / 1000)) * MEMORY_TIME_BONUS;
+        state.score += bonus;
+        player.score += bonus;
+        state.round = 1;
+      }
+      this.touch();
+      this.maybeFinishEarly();
+      return { ok: true, bonus, state: this.publicChallengeState(state) };
+    }
+
     if (step.game === "reaction") {
       if (move.round !== state.round || state.round >= REACTION_ROUNDS) return { ok: false, state: this.publicChallengeState(state) };
       const ms = Math.round(Number(move.ms));
@@ -518,7 +610,16 @@ export class Room {
   }
 
   publicChallengeState(state) {
-    return { level: state.level, round: state.round, score: state.score, misses: state.misses, lockedUntil: state.lockedUntil, best: Number.isFinite(state.best) ? state.best : null };
+    return {
+      level: state.level,
+      round: state.round,
+      score: state.score,
+      misses: state.misses,
+      lockedUntil: state.lockedUntil,
+      best: Number.isFinite(state.best) ? state.best : null,
+      taps: state.taps ?? 0,
+      matched: state.matched ?? [],
+    };
   }
 
   endChallenge() {
@@ -580,10 +681,12 @@ export class Room {
       prompt: step.prompt,
       options: step.options,
       optionArt: step.optionArt ?? null,
+      range: step.range ?? null,
+      estimate: revealed && step.range ? { answer: step.answer, ...this.current?.estimate } : null,
       images: step.images ?? null,
       visual: step.visual ?? null,
       principle: revealed ? step.principle ?? null : null,
-      answer: revealed ? step.answer : null,
+      answer: revealed && !step.range ? step.answer : null,
       explain: revealed ? step.explain ?? null : null,
       counts: revealed ? this.current?.counts ?? null : null,
       majority: revealed ? this.current?.majority ?? [] : [],

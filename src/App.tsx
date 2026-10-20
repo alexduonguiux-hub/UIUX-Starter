@@ -26,14 +26,16 @@ export function App() {
   const current = route(path);
   // Màn của giảng viên chiếu lên máy chiếu (desktop); màn học viên là điện thoại.
   const phone = current.screen === "player" || current.screen === "home" || current.screen === "missing";
+  // Màn chiếu dùng thang chữ lớn nhất của Zen ("popular") để cuối lớp vẫn đọc được; trang tạo phòng là màn laptop.
+  const typography = phone ? "mobile" : current.screen === "host" ? "popular" : "dashboard";
 
   return (
     <ZenProvider
-      key={phone ? "phone" : "desktop"}
+      key={typography}
       theme="system"
       locale="vi"
-      typography={phone ? "mobile" : "dashboard"}
-      density={phone ? "comfortable" : "compact"}
+      typography={typography}
+      density={typography === "dashboard" ? "compact" : "comfortable"}
     >
       <Suspense fallback={<Text tone="base">Đang tải…</Text>}>
         {current.screen === "home" && <Home />}

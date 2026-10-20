@@ -2,10 +2,10 @@
 // và bộ sinh màn chơi theo seed (server và máy học viên tạo ra cùng một màn chơi).
 
 /**
- * @typedef {"poll" | "whois" | "rebus" | "quiz" | "ab" | "reaction" | "color" | "center"} GameId
+ * @typedef {"poll" | "whois" | "truth" | "rebus" | "estimate" | "quiz" | "ab" | "reaction" | "tap" | "memory" | "color" | "center"} GameId
  * set: "warmup" là trò làm quen không cần chuyên môn, "uiux" là trò chuyên môn cho các buổi sau.
- * theme: màu của Badge/DockIcon · card: màu thẻ Subtle · hero: màu thẻ Solid (màn giới thiệu) · art: emoji trang trí.
- * @typedef {{ id: GameId, set: "warmup" | "uiux", kind: "question" | "challenge", title: string, emoji: string, art: string[], theme: string, card: string, hero: string, short: string, howTo: string[], seconds: number, estimate: number }} GameMeta
+ * theme: màu của Badge/DockIcon · card: màu thẻ Subtle · art: emoji trang trí. Màu theo bảng phối màu trong CLAUDE.md.
+ * @typedef {{ id: GameId, set: "warmup" | "uiux", kind: "question" | "challenge", title: string, emoji: string, art: string[], theme: string, card: string, short: string, howTo: string[], seconds: number, estimate: number }} GameMeta
  */
 
 /** @type {Record<GameId, GameMeta>} */
@@ -17,9 +17,8 @@ export const GAMES = {
     title: "Đoán số đông",
     emoji: "🤝",
     art: ["🏖️", "☕", "🐶", "🍜"],
-    theme: "pink",
-    card: "purple",
-    hero: "brand",
+    theme: "cyan",
+    card: "cyan",
     short: "Biển hay núi? Cà phê hay trà sữa? Chọn giống số đông thì được điểm.",
     howTo: ["Chọn 1 trong 2 điều bạn thích hơn.", "Bạn chọn giống số đông thì được 500 điểm.", "Xem cả lớp nghiêng về bên nào!"],
     seconds: 12,
@@ -32,13 +31,26 @@ export const GAMES = {
     title: "Ai là ai?",
     emoji: "🕵️",
     art: ["🤫", "💬", "❓", "👀"],
-    theme: "violet",
-    card: "violet",
-    hero: "cyan",
+    theme: "yellow",
+    card: "yellow",
     short: "Đoán xem bạn nào đã viết điều thú vị trên màn hình.",
     howTo: ["Mỗi bạn viết một điều thú vị về mình khi vào phòng.", "Đoán xem ai đã viết điều đó. Đúng và nhanh được 500 đến 1.000 điểm.", "Người viết được 300 điểm vì đã chia sẻ."],
     seconds: 15,
     estimate: 30,
+  },
+  truth: {
+    id: "truth",
+    set: "warmup",
+    kind: "question",
+    title: "Thật hay đùa?",
+    emoji: "🤔",
+    art: ["✅", "❌", "🐙", "🍌"],
+    theme: "violet",
+    card: "violet",
+    short: "Một câu nói vui về thế giới quanh ta. Là sự thật hay bịa?",
+    howTo: ["Đọc câu nói trên màn hình.", "Chọn Thật hoặc Đùa.", "Đúng và nhanh được 500 đến 1.000 điểm, kèm lời giải thích thú vị."],
+    seconds: 12,
+    estimate: 25,
   },
   rebus: {
     id: "rebus",
@@ -47,13 +59,26 @@ export const GAMES = {
     title: "Đuổi hình bắt chữ",
     emoji: "🧩",
     art: ["🐸", "🎸", "🦁", "🍜"],
-    theme: "orange",
-    card: "orange",
-    hero: "yellow",
+    theme: "pink",
+    card: "brand",
     short: "Nhìn emoji, đoán thành ngữ, tên phim hoặc món ăn.",
     howTo: ["Nhìn hình emoji trên màn hình.", "Chọn thành ngữ, tên phim hoặc món ăn đúng.", "Đúng và nhanh được 500 đến 1.000 điểm."],
     seconds: 20,
     estimate: 32,
+  },
+  estimate: {
+    id: "estimate",
+    set: "warmup",
+    kind: "question",
+    title: "Đoán gần đúng",
+    emoji: "📏",
+    art: ["🏔️", "🎹", "⏰", "🦴"],
+    theme: "green",
+    card: "green",
+    short: "Kéo thanh trượt để đoán một con số. Ai đoán sát nhất được nhiều điểm nhất.",
+    howTo: ["Đọc câu hỏi, kéo thanh trượt tới con số bạn đoán.", "Bấm Chốt đáp án trước khi hết giờ.", "Đoán trúng được 1.000 điểm, càng lệch càng ít."],
+    seconds: 20,
+    estimate: 35,
   },
   quiz: {
     id: "quiz",
@@ -62,9 +87,8 @@ export const GAMES = {
     title: "Quiz nhanh UI/UX",
     emoji: "🧠",
     art: ["💡", "📐", "🎯", "✏️"],
-    theme: "yellow",
-    card: "yellow",
-    hero: "orange",
+    theme: "cyan",
+    card: "cyan",
     short: "Trắc nghiệm kiến thức nền UI/UX. Đúng và nhanh thì nhiều điểm.",
     howTo: ["Đọc câu hỏi trên màn hình lớn hoặc trên điện thoại.", "Trả lời đúng được 500 đến 1.000 điểm.", "Càng nhanh càng nhiều điểm."],
     seconds: 20,
@@ -77,9 +101,8 @@ export const GAMES = {
     title: "A hay B?",
     emoji: "🆚",
     art: ["🅰️", "🅱️", "👀", "✨"],
-    theme: "blue",
-    card: "blue",
-    hero: "cyan",
+    theme: "violet",
+    card: "violet",
     short: "Hai thiết kế, chọn cái tốt hơn rồi xem nguyên tắc đằng sau.",
     howTo: ["Xem hai phương án thiết kế A và B.", "Chọn phương án tốt hơn.", "Đúng và nhanh được 500 đến 1.000 điểm."],
     seconds: 20,
@@ -92,13 +115,40 @@ export const GAMES = {
     title: "Phản xạ nhanh",
     emoji: "🚦",
     art: ["⚡", "🟢", "🔴", "👆"],
-    theme: "green",
-    card: "green",
-    hero: "neutral",
+    theme: "yellow",
+    card: "yellow",
     short: "Chờ đèn chuyển xanh rồi chạm thật nhanh. Ai phản xạ nhanh nhất?",
     howTo: ["Màn hình đỏ: chờ, đừng chạm.", "Màn hình chuyển xanh: chạm thật nhanh!", "Có 5 lượt, mỗi lượt tối đa 200 điểm. Chạm sớm được 0 điểm."],
     seconds: 40,
     estimate: 55,
+  },
+  tap: {
+    id: "tap",
+    set: "warmup",
+    kind: "challenge",
+    title: "Đua bấm",
+    emoji: "👆",
+    art: ["💥", "🔥", "⚡", "🏁"],
+    theme: "cyan",
+    card: "cyan",
+    short: "10 giây bấm thật nhiều! Cả team cộng dồn, xem team nào bấm nhiều nhất.",
+    howTo: ["Khi đếm ngược xong, bấm liên tục vào nút tròn.", "Mỗi lần bấm được 10 điểm, trong 10 giây.", "Màn chiếu hiện cuộc đua của các team."],
+    seconds: 10,
+    estimate: 30,
+  },
+  memory: {
+    id: "memory",
+    set: "warmup",
+    kind: "challenge",
+    title: "Lật hình ghép đôi",
+    emoji: "🃏",
+    art: ["🐶", "🍉", "⭐", "🎈"],
+    theme: "violet",
+    card: "violet",
+    short: "Lật thẻ tìm các cặp hình giống nhau. Xong sớm được thêm điểm.",
+    howTo: ["Chạm để lật 2 thẻ. Giống nhau thì giữ lại, khác nhau thì úp lại.", "Mỗi cặp đúng được 100 điểm.", "Tìm hết 8 cặp sớm được thêm 10 điểm cho mỗi giây còn lại."],
+    seconds: 45,
+    estimate: 65,
   },
   color: {
     id: "color",
@@ -107,9 +157,8 @@ export const GAMES = {
     title: "Mắt thần màu sắc",
     emoji: "🎨",
     art: ["👁️", "🟪", "🟦", "🟩"],
-    theme: "violet",
-    card: "violet",
-    hero: "yellow",
+    theme: "pink",
+    card: "brand",
     short: "Tìm ô khác màu trong lưới. Càng lên cao càng khó.",
     howTo: ["Chạm vào ô có màu khác với các ô còn lại.", "Mỗi ô đúng được 50 điểm, lưới sẽ to dần và màu sát nhau hơn.", "Chạm sai sẽ bị khoá 1 giây."],
     seconds: 40,
@@ -124,7 +173,6 @@ export const GAMES = {
     art: ["📏", "⭕", "🟦", "✨"],
     theme: "green",
     card: "green",
-    hero: "neutral",
     short: "Chạm đúng tâm của từng hình. Càng chính xác càng nhiều điểm.",
     howTo: ["Mỗi lượt hiện một hình, chạm vào đúng tâm của nó.", "Chạm càng sát tâm càng nhiều điểm, tối đa 300 điểm mỗi hình.", "Có 5 hình. Hình vòng tròn rỗng thì tâm nằm ở khoảng trống!"],
     seconds: 45,
@@ -134,17 +182,18 @@ export const GAMES = {
 
 /** Thứ tự các phần trong một buổi chơi: làm quen trước, thử thách sau. */
 /** @type {GameId[]} */
-export const GAME_ORDER = ["poll", "whois", "rebus", "quiz", "ab", "reaction", "color", "center"];
+export const GAME_ORDER = ["poll", "whois", "truth", "rebus", "estimate", "quiz", "ab", "reaction", "tap", "memory", "color", "center"];
 
 /** @typedef {Record<GameId, number>} GameCounts */
 
-const none = { poll: 0, whois: 0, rebus: 0, quiz: 0, ab: 0, reaction: 0, color: 0, center: 0 };
+const none = { poll: 0, whois: 0, truth: 0, rebus: 0, estimate: 0, quiz: 0, ab: 0, reaction: 0, tap: 0, memory: 0, color: 0, center: 0 };
 
 /** Gói chơi gợi ý. Số là số câu (trò hỏi đáp) hoặc 0/1 (thử thách). */
-/** @type {Record<"quick" | "full" | "uiux", { title: string, set: "warmup" | "uiux", games: GameCounts }>} */
+/** @type {Record<"quick" | "full" | "active" | "uiux", { title: string, set: "warmup" | "uiux", games: GameCounts }>} */
 export const PACKS = {
-  quick: { title: "Làm quen nhanh", set: "warmup", games: { ...none, poll: 2, whois: 3, rebus: 3, reaction: 1 } },
-  full: { title: "Làm quen trọn bộ", set: "warmup", games: { ...none, poll: 3, whois: 4, rebus: 4, reaction: 1, color: 1 } },
+  quick: { title: "Làm quen nhanh", set: "warmup", games: { ...none, poll: 2, whois: 2, truth: 3, rebus: 2, tap: 1 } },
+  full: { title: "Làm quen trọn bộ", set: "warmup", games: { ...none, poll: 2, whois: 3, truth: 2, rebus: 2, estimate: 2, tap: 1, memory: 1 } },
+  active: { title: "Nhanh tay nhanh mắt", set: "warmup", games: { ...none, truth: 2, reaction: 1, tap: 1, memory: 1, color: 1 } },
   uiux: { title: "Chuyên môn UI/UX", set: "uiux", games: { ...none, quiz: 5, ab: 3, color: 1, center: 1 } },
 };
 
@@ -163,12 +212,12 @@ export function estimateSeconds(/** @type {GameCounts} */ games) {
 
 /** Đội chơi. */
 export const TEAM_PRESETS = [
-  { id: "pixel", name: "Pixel", emoji: "👾", icon: "icon-cube-solid", theme: "violet", card: "violet" },
-  { id: "vector", name: "Vector", emoji: "✒️", icon: "icon-pen-tool-01-solid", theme: "blue", card: "blue" },
-  { id: "layer", name: "Layer", emoji: "🧱", icon: "icon-layers-three-01-solid", theme: "orange", card: "orange" },
+  { id: "pixel", name: "Pixel", emoji: "👾", icon: "icon-cube-solid", theme: "cyan", card: "cyan" },
+  { id: "vector", name: "Vector", emoji: "✒️", icon: "icon-pen-tool-01-solid", theme: "pink", card: "brand" },
+  { id: "layer", name: "Layer", emoji: "🧱", icon: "icon-layers-three-01-solid", theme: "yellow", card: "yellow" },
   { id: "grid", name: "Grid", emoji: "🧩", icon: "icon-grid-01-solid", theme: "green", card: "green" },
-  { id: "gradient", name: "Gradient", emoji: "🌈", icon: "icon-brush-01-solid", theme: "pink", card: "purple" },
-  { id: "kerning", name: "Kerning", emoji: "🔠", icon: "icon-type-square-solid", theme: "teal", card: "cyan" },
+  { id: "gradient", name: "Gradient", emoji: "🌈", icon: "icon-brush-01-solid", theme: "violet", card: "violet" },
+  { id: "kerning", name: "Kerning", emoji: "🔠", icon: "icon-type-square-solid", theme: "orange", card: "orange" },
 ];
 
 /** Ảnh đại diện học viên chọn khi vào phòng. */
@@ -193,6 +242,13 @@ export const REACTION_ROUNDS = 5;
 export const REACTION_MAX = 200;
 /** Nhanh hơn mức này là đoán mò (chạm trước khi kịp thấy), không tính điểm. */
 export const REACTION_MIN_MS = 100;
+export const MEMORY_PAIRS = 8;
+export const MEMORY_POINTS = 100;
+/** Điểm thưởng cho mỗi giây còn lại khi lật hết các cặp. */
+export const MEMORY_TIME_BONUS = 10;
+export const TAP_POINTS = 10;
+/** Số lần bấm tối đa mỗi giây được tính (chặn bấm bằng máy). */
+export const TAP_MAX_RATE = 15;
 /** Thời gian đếm ngược 3‑2‑1 trước mỗi thử thách. */
 export const CHALLENGE_LEAD_MS = 3000;
 
@@ -206,6 +262,13 @@ export function answerPoints(/** @type {boolean} */ correct, /** @type {number} 
 /** Điểm Pixel Perfect theo khoảng cách tới tâm (đơn vị: % cạnh khung). */
 export function centerPoints(/** @type {number} */ distance) {
   return Math.round(CENTER_MAX * Math.max(0, 1 - distance / CENTER_ZERO_AT));
+}
+
+/** Điểm Đoán gần đúng: trúng được 1.000, lệch một nửa khoảng giá trị thì 0. Làm tròn tới 10. */
+export function estimatePoints(/** @type {number} */ guess, /** @type {number} */ answer, /** @type {number} */ min, /** @type {number} */ max) {
+  if (!Number.isFinite(guess)) return 0;
+  const share = 1 - (2 * Math.abs(guess - answer)) / (max - min);
+  return Math.round((1000 * Math.max(0, share)) / 10) * 10;
 }
 
 /** Điểm Phản xạ nhanh: 250 ms trở xuống được tối đa, 1 giây trở lên được 0. */
@@ -237,6 +300,16 @@ export function seededRandom(/** @type {string | number} */ seed) {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+/** Hình cho Lật hình ghép đôi. */
+const MEMORY_EMOJI = ["🐶", "🐱", "🍉", "🍕", "⭐", "🎈", "🚗", "🌈", "🍩", "⚽", "🎸", "🌵", "🦋", "🍓", "🚀", "🎁"];
+
+/** Bộ thẻ Lật hình ghép đôi: 8 cặp hình xếp ngẫu nhiên theo seed (ai cũng có cùng một bộ). */
+export function memoryDeck(/** @type {string} */ seed) {
+  const random = seededRandom(`${seed}:memory`);
+  const picks = shuffle(MEMORY_EMOJI, random).slice(0, MEMORY_PAIRS);
+  return shuffle([...picks, ...picks], random);
 }
 
 /** Thời gian chờ (ms) trước khi đèn chuyển xanh ở từng lượt Phản xạ nhanh. */

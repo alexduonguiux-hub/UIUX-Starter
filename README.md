@@ -2,20 +2,22 @@
 
 Web game khởi động 5–10 phút cho học viên trước buổi học UI/UX đầu tiên. Giảng viên chiếu mã QR lên màn hình, học viên quét bằng điện thoại để vào phòng, chơi **theo team** hoặc **cá nhân**, bảng xếp hạng cập nhật trực tiếp.
 
-Giao diện dựng hoàn toàn bằng **Zen DS** (`@zen-ds/react`), theme màu Brand.
+Giao diện dựng bằng **Zen DS** (`@zen-ds/react`). Hình minh hoạ là bộ emoji 3D **Microsoft Fluent Emoji** (giấy phép MIT), cùng một phong cách trên mọi điện thoại và máy tính.
 
 ## Các trò chơi
 
-Có hai bộ trò chơi. **Bộ làm quen** không cần chuyên môn, dùng cho buổi đầu. **Bộ chuyên môn UI/UX** dùng cho các buổi sau.
-
-**Bộ làm quen**
+Có hai bộ trò chơi. **Bộ làm quen**
 
 | Trò chơi | Thời lượng | Cách chơi | Điểm |
 | --- | --- | --- | --- |
-| 🤝 **Đoán số đông** | 12 giây/câu | Biển hay núi, cà phê hay trà sữa, team chó hay team mèo… Mỗi lựa chọn có hình minh hoạ. | Chọn giống số đông: 500 |
+| 🤝 **Đoán số đông** | 12 giây/câu | Biển hay núi, cà phê hay trà sữa… Mỗi lựa chọn có hình minh hoạ. | Chọn giống số đông: 500 |
 | 🕵️ **Ai là ai?** | 15 giây/câu | Khi vào phòng, mỗi bạn viết một điều thú vị về mình. Cả lớp đoán xem ai viết. | Đoán đúng: 500 + tối đa 500 theo tốc độ. Người viết: 300 |
-| 🧩 **Đuổi hình bắt chữ** | 20 giây/câu | Nhìn emoji, đoán thành ngữ, tên phim hoặc món ăn (🐸🕳️ = Ếch ngồi đáy giếng). | Đúng: 500 + tối đa 500 theo tốc độ |
+| 🤔 **Thật hay đùa?** | 12 giây/câu | Một câu nói vui về thế giới quanh ta (bạch tuộc có 3 trái tim…). Thật hay bịa? | Đúng: 500 + tối đa 500 theo tốc độ |
+| 🧩 **Đuổi hình bắt chữ** | 20 giây/câu | Nhìn emoji, đoán thành ngữ, tên phim hoặc món ăn. | Đúng: 500 + tối đa 500 theo tốc độ |
+| 📏 **Đoán gần đúng** | 20 giây/câu | Kéo thanh trượt đoán một con số (Fansipan cao bao nhiêu mét?). | Tối đa 1.000, càng sát càng nhiều |
 | 🚦 **Phản xạ nhanh** | 40 giây | Màn hình đỏ thì chờ, chuyển xanh thì chạm thật nhanh. 5 lượt. | Tối đa 200 mỗi lượt, chạm sớm 0 |
+| 👆 **Đua bấm** | 10 giây | Bấm thật nhiều, cả team cộng dồn. Server chặn tốc độ bất thường. | 10 mỗi lần bấm |
+| 🃏 **Lật hình ghép đôi** | 45 giây | Lật thẻ tìm 8 cặp hình giống nhau. | 100 mỗi cặp, xong sớm được thưởng 10 mỗi giây còn lại |
 | 🎨 **Mắt thần màu sắc** | 40 giây | Tìm ô khác màu trong lưới, càng lên cao càng khó. | 50 mỗi ô đúng |
 
 **Bộ chuyên môn UI/UX**
@@ -25,12 +27,12 @@ Có hai bộ trò chơi. **Bộ làm quen** không cần chuyên môn, dùng cho
 | 🧠 **Quiz nhanh UI/UX** | 20 giây/câu | Trắc nghiệm WCAG, Fitts, Hick, Auto layout, Persona, lưới 8pt… |
 | 🆚 **A hay B?** | 20 giây/câu | Chọn thiết kế tốt hơn, rồi xem nguyên tắc: tương phản, căn lề, phân cấp, Gestalt, thứ bậc nút, vùng chạm. |
 | 🎯 **Pixel Perfect** | 45 giây | Chạm đúng tâm của 5 hình. |
-| 🎨 **Mắt thần màu sắc** | 40 giây | Dùng chung với bộ làm quen. |
 
 **Gói chơi gợi ý**
 
-- **Làm quen nhanh (~6 phút):** 2 câu Đoán số đông, 3 câu Ai là ai?, 3 câu Đuổi hình bắt chữ, Phản xạ nhanh.
-- **Làm quen trọn bộ (~8 phút):** thêm câu cho từng trò và Mắt thần màu sắc.
+- **Làm quen nhanh (~6 phút):** Đoán số đông, Ai là ai?, Thật hay đùa?, Đuổi hình bắt chữ, Đua bấm.
+- **Làm quen trọn bộ (~8 phút):** thêm Đoán gần đúng và Lật hình ghép đôi.
+- **Nhanh tay nhanh mắt (~5 phút):** Thật hay đùa?, Phản xạ nhanh, Đua bấm, Lật hình ghép đôi, Mắt thần màu sắc.
 - **Chuyên môn UI/UX (~8 phút):** 5 câu Quiz, 3 câu A hay B?, Mắt thần màu sắc, Pixel Perfect.
 - **Tự chọn:** chọn từng trò và số câu, từ cả hai bộ.
 
@@ -39,7 +41,7 @@ Có hai bộ trò chơi. **Bộ làm quen** không cần chuyên môn, dùng cho
 - **Theo team:** 2–6 team (Pixel, Vector, Layer, Grid, Gradient, Kerning). Chia tự động cho đều người, hoặc học viên tự chọn team. Điểm team tính theo trung bình mỗi thành viên (công bằng khi team chênh người) hoặc tổng điểm.
 - **Cá nhân:** chỉ có bảng xếp hạng cá nhân.
 
-Học viên chọn avatar con vật khi vào phòng. Sau mỗi câu có màn công bố đáp án, ô thống kê điểm, hạng và chuỗi đúng, rồi bảng xếp hạng. Có từ 3 team thì màn chiếu hiện biểu đồ "Đường đua các team". Cuối buổi có bục nhận giải top 3, pháo giấy và team vô địch.
+Học viên chọn avatar con vật 3D khi vào phòng. Sau mỗi câu có màn công bố đáp án, ô thống kê điểm, hạng và chuỗi đúng, rồi bảng xếp hạng dạng bục nhận giải: top 3 trên bục vàng, xanh, cam; các hạng sau xếp bên dưới. Có từ 3 team thì màn chiếu hiện biểu đồ "Đường đua các team". Cuối buổi có pháo giấy và team vô địch.
 
 ## Cách dùng trong lớp
 
@@ -110,6 +112,10 @@ Toàn bộ câu hỏi nằm trong [`shared/content.js`](shared/content.js):
 - `AB`: cặp thiết kế tốt/chưa tốt dạng SVG, kèm nguyên tắc và giải thích. Server tự xáo vị trí A/B.
 - `POLLS`: câu Đoán số đông, mỗi câu 2 lựa chọn, mỗi lựa chọn có một emoji minh hoạ.
 - `REBUS`: câu Đuổi hình bắt chữ: chuỗi emoji, 4 đáp án, loại (Thành ngữ, Phim, Món ăn).
+- `TRUTHS`: câu Thật hay đùa?: emoji, câu nói, đúng hay sai và lời giải thích.
+- `ESTIMATES`: câu Đoán gần đúng: khoảng giá trị, bước, đáp án và đơn vị.
+
+Thêm emoji mới vào nội dung hoặc giao diện thì chạy `npm run emoji` để chép hình 3D tương ứng vào `public/emoji` (emoji chưa có hình vẫn hiện bằng phông chữ của máy).
 
 Luật chơi, thời gian, điểm và gói chơi nằm trong [`shared/games.js`](shared/games.js).
 
@@ -120,7 +126,10 @@ server/      Express + Socket.io, logic phòng chơi (room.js)
 shared/      Nội dung câu hỏi và luật chơi, dùng chung cho server và trình duyệt
 src/         Giao diện React + Zen DS
   screens/   Trang chủ, tạo phòng, màn chiếu của giảng viên, màn điện thoại của học viên
-  games/     Hai trò thử thách: Mắt thần màu sắc, Pixel Perfect
+  games/     Các trò thử thách và Đoán gần đúng (Phản xạ, Đua bấm, Lật hình, Mắt thần màu sắc, Pixel Perfect)
+  components/ Thành phần dùng chung: đáp án, bục nhận giải, emoji 3D…
+public/emoji/ Hình emoji 3D Fluent (MIT, xem LICENSE.txt), sinh bằng npm run emoji
+scripts/     emoji-assets.mjs: chép hình emoji 3D mà trò chơi dùng
 tests/       Kiểm thử logic chơi (node:test)
 ```
 
@@ -138,7 +147,7 @@ npm run build && npm start
 npx zen-ds audit http://localhost:3000/ --routes=/,/host --dark
 ```
 
-Màn học viên (`/join/<mã>`) báo cảnh báo "no h1": tiêu đề của TopNavigation là heading cấp 1 theo ARIA nhưng công cụ audit chỉ đếm thẻ `h1`. Đây là lệch giữa hai phần của Zen DS, không phải lỗi của game.
+**Bố cục màn chiếu.** Mọi màn của giảng viên nằm gọn trong một khung 16:9, không cần cuộn, ở 1280×720, 1366×640 (laptop chưa bật toàn màn hình) và 1920×1080. Chữ theo thang lớn nhất của Zen ("popular"). Riêng danh sách người chơi ở phòng chờ cuộn bên trong khi lớp đông. Khi trình chiếu, bấm F11 để có nhiều chỗ nhất.
 
 ## Ý tưởng mở rộng
 
@@ -150,5 +159,7 @@ Các trò 5–10 phút khác có thể thêm sau:
 - **Tìm lỗi UX:** chạm vào chỗ sai trên một màn hình mẫu (cho bộ chuyên môn).
 
 ## Giấy phép Zen DS
+
+Hình emoji 3D trong `public/emoji` là Microsoft Fluent Emoji, giấy phép MIT (kèm `public/emoji/LICENSE.txt`).
 
 `@zen-ds/react` là gói có bản quyền của Dizai Studio. Repo này chỉ khai báo gói trong `package.json` và `.npmrc`, không chứa file nào của Zen DS. Không commit `node_modules`, token hay licence key.

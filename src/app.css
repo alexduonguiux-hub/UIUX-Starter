@@ -68,11 +68,33 @@
 
 /* ── Hình minh hoạ ─────────────────────────────────── */
 
+/* Emoji 3D: mỗi hình vuông bằng cỡ chữ xung quanh, nên dùng được cả trong dòng chữ lẫn hình minh hoạ lớn. */
+.emoji {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.06em;
+  line-height: 1;
+  vertical-align: -0.18em;
+}
+
+.emoji__img {
+  width: 1.2em;
+  height: 1.2em;
+  flex: none;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
 /* Emoji cỡ lớn, dựa trên cỡ chữ Display-Extra của Zen. */
 .emoji-art {
   display: inline-block;
   line-height: 1.1;
   font-size: var(--zen-typography-font-size-display-extra-1);
+}
+
+.emoji-art--sm {
+  font-size: var(--zen-typography-font-size-heading-3);
 }
 
 .emoji-art--md {
@@ -162,10 +184,10 @@
 }
 
 .confetti__piece:nth-child(6n + 1) { background: var(--zen-color-background-support-yellow-solid); animation-duration: calc(var(--zen-motion-duration-slow) * 12); }
-.confetti__piece:nth-child(6n + 2) { background: var(--zen-color-background-support-blue-solid); animation-duration: calc(var(--zen-motion-duration-slow) * 9); animation-delay: -900ms; }
+.confetti__piece:nth-child(6n + 2) { background: var(--zen-color-background-support-cyan-solid); animation-duration: calc(var(--zen-motion-duration-slow) * 9); animation-delay: -900ms; }
 .confetti__piece:nth-child(6n + 3) { background: var(--zen-color-background-support-green-solid); animation-duration: calc(var(--zen-motion-duration-slow) * 11); animation-delay: -1700ms; }
 .confetti__piece:nth-child(6n + 4) { background: var(--zen-color-background-support-violet-solid); animation-duration: calc(var(--zen-motion-duration-slow) * 10); animation-delay: -400ms; }
-.confetti__piece:nth-child(6n + 5) { background: var(--zen-color-background-support-orange-solid); animation-duration: calc(var(--zen-motion-duration-slow) * 13); animation-delay: -2300ms; }
+.confetti__piece:nth-child(6n + 5) { background: var(--zen-color-background-support-brand-solid); animation-duration: calc(var(--zen-motion-duration-slow) * 13); animation-delay: -2300ms; }
 .confetti__piece:nth-child(4n) { animation-delay: -1300ms; }
 
 @keyframes confetti-fall {
@@ -210,8 +232,432 @@
   position: relative;
 }
 
-/* Emoji trong Avatar to hơn chữ cái đầu, theo cỡ của Avatar. */
+/* Emoji 3D trong Avatar: chiếm phần lớn vòng tròn nền trắng. */
 .avatar-emoji {
-  font-size: 1.7em;
-  line-height: 1;
+  display: block;
+  width: 74%;
+  height: 74%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ── Lật hình ghép đôi ─────────────────────────────── */
+
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--zen-spacing-gap-small);
+  width: 100%;
+  touch-action: manipulation;
+}
+
+.memory-card {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: none;
+  font: inherit;
+  aspect-ratio: 3 / 4;
+  perspective: 600px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.memory-card:disabled {
+  cursor: default;
+}
+
+.memory-card:focus-visible {
+  outline: 3px solid var(--zen-color-focus-accent-solid);
+  outline-offset: 2px;
+  border-radius: var(--zen-corner-radius-large);
+}
+
+.memory-card__inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform var(--zen-motion-duration-slow) var(--zen-motion-ease-standard);
+}
+
+.memory-card[data-open="true"] .memory-card__inner {
+  transform: rotateY(180deg);
+}
+
+.memory-card__face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--zen-corner-radius-large);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Mặt sau: màu tím của trò Lật hình, chữ trắng đạt 4.96:1. */
+.memory-card__back {
+  background: var(--zen-color-background-support-violet-solid);
+  color: var(--zen-color-content-on-colors);
+  font-family: var(--zen-typography-font-family-heading);
+  font-size: var(--zen-typography-font-size-heading-2);
+}
+
+.memory-card__front {
+  transform: rotateY(180deg);
+  background: var(--zen-color-background-surface-default);
+  font-size: var(--zen-typography-font-size-display-3);
+}
+
+.memory-card[data-matched="true"] .memory-card__front {
+  background: linear-gradient(var(--zen-color-background-support-green-subtle), var(--zen-color-background-support-green-subtle)), var(--zen-color-background-surface-default);
+}
+
+/* ── Đua bấm: nút tròn khổng lồ ────────────────────── */
+
+.tap-pad {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 360px;
+  align-self: center;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition: transform var(--zen-motion-duration-xfast) var(--zen-motion-ease-standard);
+}
+
+.tap-pad[data-hit="true"] {
+  transform: scale(0.95);
+}
+
+.tap-pad[aria-disabled="true"] {
+  cursor: default;
+}
+
+.tap-pad:focus-visible {
+  outline: 3px solid var(--zen-color-focus-accent-solid);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-card__inner,
+  .tap-pad {
+    transition: none;
+  }
+}
+
+/* ── Avatar ô vuông nền trắng ───────────────────────── */
+
+.avatar-tile {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--zen-corner-radius-large);
+  background: var(--zen-color-background-surface-default);
+  border: 1px solid var(--zen-color-border-neutral-subtle-default);
+}
+
+.avatar-tile img {
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.avatar-tile--md { width: 48px; height: 48px; }
+.avatar-tile--lg { width: 64px; height: 64px; border-radius: var(--zen-corner-radius-xlarge); }
+.avatar-tile--xl { width: 96px; height: 96px; border-radius: var(--zen-corner-radius-2-xlarge); }
+
+/* ── Bục nhận giải ──────────────────────────────────── */
+
+/*
+ * Ba màu: vàng (hạng 1), xanh dừa cạn (hạng 2), cam đào (hạng 3).
+ * Vàng 81° và xanh dừa cạn 272° gần bù nhau trên vòng màu nên hạng 1 nổi nhất; cam đào 57° kề vàng giữ tông ấm.
+ * Mỗi bậc nhạt dần xuống đáy, mặt trên sáng hơn như khối 3D. Số hạng dùng màu chữ đậm nhất cùng sắc.
+ */
+.podium {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-items: end;
+  padding-top: var(--zen-spacing-gap-large);
+}
+
+.podium__rays {
+  position: absolute;
+  z-index: -1;
+  inset: -12% 0 20%;
+  background: repeating-conic-gradient(from 0deg at 50% 55%, var(--zen-color-background-surface-default) 0deg 5deg, transparent 5deg 15deg);
+  mask-image: radial-gradient(closest-side at 50% 55%, var(--zen-color-background-white-solid-default), transparent);
+  -webkit-mask-image: radial-gradient(closest-side at 50% 55%, var(--zen-color-background-white-solid-default), transparent);
+}
+
+.podium__col {
+  --podium-color: var(--zen-color-background-support-yellow-solid);
+  --podium-height: 168px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--zen-spacing-gap-small);
+  min-width: 0;
+}
+
+.podium__col[data-place="2"] {
+  --podium-color: var(--zen-color-background-support-indigo-soft);
+  --podium-height: 120px;
+}
+
+.podium__col[data-place="3"] {
+  --podium-color: var(--zen-color-background-support-orange-soft);
+  --podium-height: 96px;
+}
+
+.podium__who {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--zen-spacing-gap-2-xsmall);
+  width: 100%;
+  padding-inline: var(--zen-spacing-gap-xsmall);
+  min-width: 0;
+}
+
+.podium__block {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--zen-spacing-gap-2-xsmall);
+  width: 100%;
+  height: var(--podium-height);
+  margin-top: var(--zen-spacing-gap-medium);
+  padding-top: var(--zen-spacing-gap-medium);
+  background: linear-gradient(180deg, var(--podium-color) 0%, var(--podium-color) 35%, transparent 100%);
+}
+
+/* Mặt trên của bậc: cùng màu, phủ trắng mờ cho sáng hơn, vát về phía ngoài. */
+.podium__block::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--zen-spacing-gap-medium);
+  background: linear-gradient(var(--zen-color-background-white-overlay-default), var(--zen-color-background-white-overlay-default)), var(--podium-color);
+  clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%);
+}
+
+.podium__col[data-place="2"] .podium__block::before {
+  clip-path: polygon(14% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.podium__col[data-place="3"] .podium__block::before {
+  clip-path: polygon(0 0, 86% 0, 100% 100%, 0 100%);
+}
+
+/* Màn chiếu: chiều cao bậc co giãn theo chiều cao màn hình để cả bục nằm gọn trong khung 16:9. */
+.podium--lg .podium__col { --podium-height: clamp(136px, 24vh, 260px); }
+.podium--lg .podium__col[data-place="2"] { --podium-height: clamp(120px, 18vh, 190px); }
+.podium--lg .podium__col[data-place="3"] { --podium-height: clamp(112px, 14vh, 150px); }
+.podium--lg .podium__block { padding-top: var(--zen-spacing-gap-small); }
+.podium--lg .avatar-tile--xl { width: clamp(64px, 12vh, 96px); height: clamp(64px, 12vh, 96px); }
+.podium--lg .avatar-tile--lg { width: clamp(52px, 9vh, 72px); height: clamp(52px, 9vh, 72px); }
+.podium--lg .podium__block::before {
+  height: var(--zen-spacing-gap-xlarge);
+}
+
+/* ── Màn chiếu (desktop) ─────────────────────────────
+ * Cả màn nằm gọn trong một khung 16:9, không cuộn: thanh trên · tiến trình · sân khấu · thanh hành động.
+ * Lề hai bên theo chiều rộng màn hình (vùng an toàn, vì nhiều máy chiếu cắt mép hình).
+ */
+.host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zen-spacing-gap-medium);
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 1760px;
+  margin-inline: auto;
+  padding: var(--zen-spacing-gap-large) max(var(--zen-spacing-gap-large), 3vw) 0;
+}
+
+.host-phase {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--zen-spacing-gap-large);
+  min-height: 0;
+}
+
+.host-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: var(--zen-spacing-gap-xlarge);
+  align-items: stretch;
+}
+
+.host-main--single { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.host-main--split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+.host-main--board { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.host-main--half { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+/* Một cột của sân khấu: các khối xếp dọc. */
+.host-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zen-spacing-gap-large);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Vùng có thể dài (danh sách người chơi, bảng điểm): cuộn bên trong, không đẩy cả màn. */
+.host-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Hình minh hoạ câu hỏi: mép trên thẳng hàng với đáp án ở cột phải, không cao quá nửa màn hình. */
+.host-visual {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.host-visual img {
+  max-height: 46vh;
+}
+
+/* Bục nhận giải: đặt ở đáy cột để các bậc "đứng" trên sàn. */
+.host-podium {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* Desktop: khoá đúng chiều cao màn hình; cột nào dài hơn thì cuộn bên trong cột đó. */
+@media (min-width: 1024px) {
+  .host {
+    height: 100vh;
+    height: 100dvh;
+  }
+  .host-main > * {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+/* Màn chiếu thấp (1280×720, trình duyệt chưa toàn màn hình): bỏ thanh tiến trình để dành chỗ cho nội dung. */
+@media (max-height: 820px) {
+  .host-progress {
+    display: none;
+  }
+}
+
+/* Màn chiếu rất thấp (laptop 1366×768 chưa bật toàn màn hình): bỏ dòng team dưới tên trên bục. */
+@media (max-height: 700px) {
+  .podium--lg .podium__caption {
+    display: none;
+  }
+}
+
+/* Hình minh hoạ màn giới thiệu co theo chiều cao màn chiếu. */
+.host .hero-art--xl {
+  width: clamp(120px, 26vh, 330px);
+}
+.host .hero-art--xl .hero-art__main {
+  font-size: clamp(52px, 11vh, 130px);
+}
+.host .hero-art--xl .hero-art__bit {
+  font-size: clamp(26px, 5vh, 46px);
+}
+
+/* Màn hẹp (laptop dọc, máy tính bảng): quay về một cột, cho phép cuộn. */
+@media (max-width: 1023px) {
+  .host-main--split,
+  .host-main--board,
+  .host-main--half {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Trang chủ ──────────────────────────────────────
+ * Điện thoại: một cột theo thứ tự giới thiệu, vào phòng, trò chơi, giảng viên.
+ * Desktop: cột trái 5 phần (giới thiệu, vào phòng, giảng viên) đứng yên; cột phải 7 phần là danh sách trò chơi.
+ */
+.home-grid {
+  display: grid;
+  gap: var(--zen-spacing-gap-xlarge);
+  padding-block: var(--zen-spacing-gap-large);
+}
+
+@media (min-width: 1024px) {
+  .home-grid {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-areas:
+      "hero games"
+      "join games"
+      "teacher games";
+    grid-template-rows: auto auto 1fr;
+    column-gap: var(--zen-spacing-gap-3-xlarge);
+    align-items: start;
+    padding-block: var(--zen-spacing-gap-2-xlarge);
+  }
+  .home-grid__hero { grid-area: hero; }
+  .home-grid__join { grid-area: join; }
+  .home-grid__teacher { grid-area: teacher; }
+  .home-grid__games { grid-area: games; }
+}
+
+/* Hàng nhiều emoji (thẻ gói chơi): xuống dòng thay vì tràn ra ngoài. */
+.emoji-art .emoji {
+  flex-wrap: wrap;
+}
+
+/* Màn chiếu thấp (dưới 760px): khoảng cách giữa các phần và hình minh hoạ nhỏ hơn một bậc. */
+@media (max-height: 760px) {
+  .host {
+    gap: var(--zen-spacing-gap-small);
+  }
+  .host-phase {
+    gap: var(--zen-spacing-gap-medium);
+  }
+  .host-main {
+    gap: var(--zen-spacing-gap-large);
+  }
+  .host .emoji-art--lg {
+    font-size: var(--zen-typography-font-size-display-1);
+  }
+  .host .emoji-art--xl {
+    font-size: var(--zen-typography-font-size-display-extra-1);
+    letter-spacing: 0;
+  }
+}
+
+/* Câu hỏi không có hình: các thẻ đáp án lấp đầy sân khấu như trò quiz trên màn chiếu, nội dung thẻ nằm giữa theo chiều dọc. */
+.host-answers-fill > .zen-grid {
+  height: 100%;
+  grid-auto-rows: minmax(0, 1fr);
+}
+
+.host-answers-fill .zen-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: center;
+  width: 100%;
+  height: 100%;
+  max-height: 280px;
 }

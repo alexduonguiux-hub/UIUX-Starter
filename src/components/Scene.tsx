@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Box, Card, Image, Stack, Text } from "@zen-ds/react";
 import { GAMES, type GameId } from "../../shared/games.js";
 import { svgUrl } from "../lib/format";
-import { EmojiArt } from "./Fun";
+import { Emoji, EmojiArt } from "./Fun";
 
 /** Tranh nền trang trí: bầu trời pastel, hành tinh, sao và đồi. Màu nằm trong hình, không phải giao diện. */
 const SCENE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
@@ -41,7 +41,7 @@ export function GameTile({ game, caption }: { game: GameId; caption?: string }) 
           {meta.title}
         </Text>
         <Text textStyle="Caption/Regular" tone="base" align="center">
-          {caption ?? (meta.kind === "challenge" ? `⏱ ${meta.seconds} giây · thử thách` : `⏱ ${meta.seconds} giây/câu`)}
+          <Emoji>⏱️</Emoji> {caption ?? (meta.kind === "challenge" ? `${meta.seconds} giây · thử thách` : `${meta.seconds} giây/câu`)}
         </Text>
       </Stack>
     </Card>

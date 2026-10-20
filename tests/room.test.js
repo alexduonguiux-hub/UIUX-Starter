@@ -9,7 +9,13 @@ import {
   REACTION_MAX,
   REACTION_ROUNDS,
   WHOIS_AUTHOR_POINTS,
+  MEMORY_PAIRS,
+  MEMORY_POINTS,
+  TAP_MAX_RATE,
+  TAP_POINTS,
   answerPoints,
+  estimatePoints,
+  memoryDeck,
   centerPoints,
   centerTargets,
   colorLevel,
@@ -289,4 +295,96 @@ test("hồ sơ: avatar hợp lệ, điều thú vị chỉ đổi được trư�
   room.start();
   assert.ok(room.setProfile(player.id, { fact: "đổi" }).error);
   room.dispose();
+});
+
+test("thật hay đùa: hai lựa chọn có hình, chấm điểm như câu hỏi thường", () => {
+  const { room } = makeRoom({ mode: "solo", pack: "custom", games: { truth: 1 } });
+  const player = room.join({ name: "An" }).player;
+  room.start();
+  const step = goToStep(room, "truth", "question");
+  assert.deepEqual(step.options, ["Thật", "Đùa"]);
+  assert.equal(room.hostView().step.optionArt.length, 2);
+  assert.equal(room.hostView().step.answer, null);
+  room.answer(player.id, step.id, step.answer);
+  room.next();
+  assert.equal(player.score, 1000);
+  room.dispose();
+});
+
+test("đoán gần đúng: nhận con số trong khoảng, càng sát càng nhiều điểm", () => {
+  assert.equal(estimatePoints(50, 50, 0, 100), 1000);
+  assert.equal(estimatePoints(75, 50, 0, 100), 500);
+  assert.equal(estimatePoints(100, 50, 0, 100), 0);
+  const { room } = makeRoom({ mode: "solo", pack: "custom", games: { estimate: 1 } });
+  const near = room.join({ name: "Sát" }).player;
+  const far = room.join({ name: "Xa" }).player;
+  const out = room.join({ name: "Lố" }).player;
+  room.start();
+  const step = goToStep(room, "estimate", "question");
+  assert.equal(room.hostView().step.answer, null, "chưa công bố thì không lộ đáp án");
+  assert.ok(room.answer(out.id, step.id, step.range.max + 1).error, "ngoài khoảng bị từ chối");
+  room.answer(near.id, step.id, step.answer);
+  room.answer(far.id, step.id, step.range.min);
+  room.next();
+  const view = room.hostView().step;
+  assert.equal(view.estimate.answer, step.answer);
+  assert.equal(view.estimate.closest[0].id, near.id);
+  assert.equal(near.score, 1000);
+  assert.ok(far.score < near.score);
+  assert.equal(view.counts, null);
+  room.dispose();
+});
+
+test("lật hình ghép đôi: chỉ cặp đúng được điểm, xong hết được thưởng thời gian", () => {
+  const { room, advance } = makeRoom({ mode: "solo", pack: "custom", games: { memory: 1 } });
+  const player = room.join({ name: "Nhớ" }).player;
+  room.start();
+  const step = goToStep(room, "memory", "challenge");
+  advance(3_100);
+  const deck = memoryDeck(step.seed);
+  const wrongB = deck.findIndex((emoji) => emoji !== deck[0]);
+  assert.equal(room.challengeMove(player.id, step.id, { a: 0, b: wrongB }).ok, false);
+  const pairs = new Map();
+  deck.forEach((emoji, index) => pairs.set(emoji, [...(pairs.get(emoji) ?? []), index]));
+  const list = [...pairs.values()];
+  assert.equal(list.length, MEMORY_PAIRS);
+  assert.equal(room.challengeMove(player.id, step.id, { a: list[0][0], b: list[0][1] }).ok, true);
+  assert.equal(room.challengeMove(player.id, step.id, { a: list[0][0], b: list[0][1] }).ok, false, "không ghép lại cặp cũ");
+  advance(10_000);
+  let last;
+  for (const [a, b] of list.slice(1)) last = room.challengeMove(player.id, step.id, { a, b });
+  assert.ok(last.bonus > 0);
+  assert.equal(player.score, MEMORY_PAIRS * MEMORY_POINTS + last.bonus);
+  room.dispose();
+});
+
+test("đua bấm: chặn tốc độ bất thường, mỗi lần bấm 10 điểm", () => {
+  const { room, advance } = makeRoom({ mode: "team", teamCount: 2, pack: "custom", games: { tap: 1 } });
+  const player = room.join({ name: "Bấm" }).player;
+  room.start();
+  const step = goToStep(room, "tap", "challenge");
+  advance(3_000 + 2_000);
+  const first = room.challengeMove(player.id, step.id, { taps: 1000 });
+  assert.equal(first.accepted, 2 * TAP_MAX_RATE, "trong 2 giây chỉ tính tối đa 30 lần");
+  advance(1_000);
+  assert.equal(room.challengeMove(player.id, step.id, { taps: 5 }).accepted, 5);
+  assert.equal(player.score, (2 * TAP_MAX_RATE + 5) * TAP_POINTS);
+  assert.ok(room.challengeMove(player.id, step.id, { taps: -3 }).error);
+  room.dispose();
+});
+
+test("các gói chơi đều chạy hết tới kết quả cuối", () => {
+  for (const pack of ["quick", "full", "active", "uiux"]) {
+    const { room, advance } = makeRoom({ mode: "team", teamCount: 2, pack });
+    const a = room.join({ name: "A", fact: "Mình thích mèo" }).player;
+    room.join({ name: "B", fact: "Mình thích chó" });
+    room.start();
+    for (let guard = 0; guard < 300 && room.phase !== "final"; guard += 1) {
+      if (room.phase === "question") room.answer(a.id, room.step.id, room.step.range ? room.step.range.min : 0);
+      if (room.phase === "challenge") advance(3_100);
+      room.next();
+    }
+    assert.equal(room.phase, "final", pack);
+    room.dispose();
+  }
 });

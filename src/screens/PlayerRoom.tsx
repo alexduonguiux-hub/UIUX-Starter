@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   ActionBar,
   AlertBanner,
@@ -7,11 +7,13 @@ import {
   Box,
   Button,
   Card,
+  Container,
   EmptyState,
   Form,
   FormFieldset,
   Grid,
   Heading,
+  Icon,
   InlineMessage,
   InputField,
   List,
@@ -25,13 +27,16 @@ import {
 } from "@zen-ds/react";
 import { AVATARS, FACT_MAX, GAMES, NAME_MAX } from "../../shared/games.js";
 import { Answers, optionLetter } from "../components/Answers";
-import { GameBadge, GameMark, PlayerAvatar, QuestionVisual, TeamBadge, TeamMark, Timer, medal } from "../components/common";
-import { PlayerStandings, TeamStandings } from "../components/Standings";
-import { Confetti, EmojiArt, HeroArt } from "../components/Fun";
+import { GameBadge, GameMark, PlayerAvatar, QuestionVisual, TeamBadge, TeamMark, Timer } from "../components/common";
+import { Podium, RankList, TeamStandings, rankEntries } from "../components/Standings";
+import { Confetti, Emoji, EmojiArt, HeroArt } from "../components/Fun";
 import { GameTile, RaisedAvatar, SceneBanner } from "../components/Scene";
 import { CenterGame } from "../games/CenterGame";
 import { ColorGame } from "../games/ColorGame";
+import { EstimateInput, EstimateResult, formatEstimate } from "../games/Estimate";
+import { MemoryGame } from "../games/MemoryGame";
 import { ReactionGame } from "../games/ReactionGame";
+import { TapGame } from "../games/TapGame";
 import { syncClock, useServerNow } from "../lib/clock";
 import { formatPoints, points } from "../lib/format";
 import { navigate } from "../lib/router";
@@ -119,31 +124,34 @@ export function PlayerRoom({ pin }: { pin: string }) {
         subtitle={playing ? [team ? `Team ${team.name}` : null, points(view.me.score)].filter(Boolean).join(" · ") : undefined}
         banner={connection === "reconnecting" ? <AlertBanner theme="warning" size="sm">Mất kết nối, đang kết nối lại…</AlertBanner> : undefined}
       />
-      <Stack gap="xl" padding="margin-comfortable">
-        {status === "checking" && <Text tone="base">Đang vào phòng…</Text>}
-        {status === "missing" && (
-          <EmptyState title={`Không tìm thấy phòng ${pin}`} headingLevel={2} icon="icon-flag-01-line" primaryAction={{ label: "Nhập mã khác", onClick: () => navigate("/") }}>
-            Kiểm tra lại mã phòng trên màn hình chiếu nhé.
-          </EmptyState>
-        )}
-        {status === "kicked" && (
-          <EmptyState title="Bạn đã được mời ra khỏi phòng" headingLevel={2} icon="icon-user-x-line" primaryAction={{ label: "Vào lại phòng", onClick: () => window.location.reload() }}>
-            Nếu có nhầm lẫn, hãy báo giảng viên và vào lại với tên khác.
-          </EmptyState>
-        )}
-        {status === "join" && peek && (
-          <JoinForm
-            peek={peek}
-            onJoined={(player) => {
-              save(playerKeyFor(pin), player);
-              save(LAST_NAME_KEY, player.name);
-              setStored(player);
-              setStatus("playing");
-            }}
-          />
-        )}
-        {playing && <PlayerPhase view={view} leaving={leaving} onLeave={() => void leave()} />}
-      </Stack>
+      {/* Học viên mở trên laptop: giữ bố cục điện thoại trong một cột giữa màn hình. */}
+      <Container maxWidth="sm" gutter={false}>
+        <Stack gap="xl" padding="margin-comfortable">
+          {status === "checking" && <Text tone="base">Đang vào phòng…</Text>}
+          {status === "missing" && (
+            <EmptyState title={`Không tìm thấy phòng ${pin}`} headingLevel={2} icon="icon-flag-01-line" primaryAction={{ label: "Nhập mã khác", onClick: () => navigate("/") }}>
+              Kiểm tra lại mã phòng trên màn hình chiếu nhé.
+            </EmptyState>
+          )}
+          {status === "kicked" && (
+            <EmptyState title="Bạn đã được mời ra khỏi phòng" headingLevel={2} icon="icon-user-x-line" primaryAction={{ label: "Vào lại phòng", onClick: () => window.location.reload() }}>
+              Nếu có nhầm lẫn, hãy báo giảng viên và vào lại với tên khác.
+            </EmptyState>
+          )}
+          {status === "join" && peek && (
+            <JoinForm
+              peek={peek}
+              onJoined={(player) => {
+                save(playerKeyFor(pin), player);
+                save(LAST_NAME_KEY, player.name);
+                setStored(player);
+                setStatus("playing");
+              }}
+            />
+          )}
+          {playing && <PlayerPhase view={view} leaving={leaving} onLeave={() => void leave()} />}
+        </Stack>
+      </Container>
     </Stack>
   );
 }
@@ -220,7 +228,7 @@ function JoinForm({ peek, onJoined }: { peek: RoomPeek; onJoined: (player: Store
       <FormFieldset legend="Chọn avatar">
         <Grid columns={4} gap="xs">
           {AVATARS.map((emoji) => (
-            <Card key={emoji} theme="subtle" color="neutral" spacing="sm" selected={avatar === emoji} onClick={() => setAvatar(emoji)} aria-label={`Chọn avatar ${emoji}`}>
+            <Card key={emoji} theme="border" spacing="sm" selected={avatar === emoji} onClick={() => setAvatar(emoji)} aria-label={`Chọn avatar ${emoji}`}>
               <Stack align="center">
                 <EmojiArt size="md">{emoji}</EmojiArt>
               </Stack>
@@ -449,7 +457,7 @@ function QuestionHeader({ view }: { view: PlayerView }) {
   const game = GAMES[step.game];
   return (
     <Stack gap="md">
-      <GameBadge game={game.id}>{`${game.emoji} ${game.title} · Câu ${step.number}/${step.total}`}</GameBadge>
+      <GameBadge game={game.id}>{`${game.title} · Câu ${step.number}/${step.total}`}</GameBadge>
       <Heading level={2} textStyle="Heading/3">
         {step.prompt}
       </Heading>
@@ -502,7 +510,11 @@ function Question({ view }: { view: PlayerView }) {
     <Stack gap="lg">
       <Timer startsAt={view.startsAt} endsAt={view.endsAt} />
       <QuestionHeader view={view} />
-      <Answers step={step} state={chosen === null && !timeUp ? "answer" : "waiting"} chosen={chosen} onChoose={(index) => void choose(index)} />
+      {step.range ? (
+        <EstimateInput step={step} chosen={chosen} timeUp={timeUp} onSubmit={(value) => void choose(value)} />
+      ) : (
+        <Answers step={step} state={chosen === null && !timeUp ? "answer" : "waiting"} chosen={chosen} onChoose={(index) => void choose(index)} />
+      )}
       {chosen !== null ? (
         <InlineMessage theme="neutral" title="Đã gửi câu trả lời">
           Chờ mọi người trả lời xong nhé.
@@ -516,7 +528,7 @@ function Question({ view }: { view: PlayerView }) {
   );
 }
 
-/** Bốn ô thống kê kiểu game: điểm, hạng, team, chuỗi đúng. */
+/** Bốn ô thống kê kiểu game: điểm (vàng), hạng (tím), team (màu team), chuỗi đúng (xanh ngọc, tương phản với ngọn lửa cam). */
 function MyScore({ view }: { view: PlayerView }) {
   const team = view.teams.find((t) => t.id === view.me.teamId) ?? null;
   return (
@@ -526,7 +538,7 @@ function MyScore({ view }: { view: PlayerView }) {
       {team && view.me.teamRank ? (
         <MetricCard type="tile" theme="subtle" color={team.card} label={`Team ${team.name}`} value={`#${view.me.teamRank}`} icon={team.icon} iconTheme={team.theme} />
       ) : null}
-      <MetricCard type="tile" theme="subtle" color="orange" label="Chuỗi đúng" value={`${view.me.streak} 🔥`} icon="icon-zap-solid" iconTheme="orange" />
+      <MetricCard type="tile" theme="subtle" color="cyan" label="Chuỗi đúng" value={<>{view.me.streak} <EmojiArt size="sm">🔥</EmojiArt></>} icon="icon-zap-solid" iconTheme="cyan" />
     </Grid>
   );
 }
@@ -535,17 +547,26 @@ function Reveal({ view }: { view: PlayerView }) {
   const step = view.step!;
   const last = view.me.last;
   const isPoll = step.game === "poll";
-  let message: { theme: "positive" | "negative" | "info" | "warning"; title: string; body: string; emoji: string };
+  let message: { theme: "positive" | "negative" | "info" | "warning"; title: string; body: ReactNode; emoji: string };
   if (last?.author) message = { theme: "positive", title: `+${last.points} điểm chia sẻ`, body: "Cảm ơn bạn đã kể về mình!", emoji: "🤗" };
   else if (!last?.answered) message = { theme: "warning", title: "Bạn chưa trả lời câu này", body: "Câu sau nhanh tay hơn nhé!", emoji: "⏰" };
-  else if (isPoll && last.correct) message = { theme: "positive", title: `Bạn thuộc số đông! +${last.points}`, body: "Nhiều bạn trong lớp cũng thích giống bạn.", emoji: "🙌" };
+  else if (step.range) {
+    const guess = last.choice ?? 0;
+    const diff = step.estimate ? Math.abs(guess - step.estimate.answer) : 0;
+    message = {
+      theme: last.points >= 500 ? "positive" : "info",
+      title: last.points > 0 ? `+${formatPoints(last.points)} điểm` : "Lệch xa quá rồi!",
+      body: `Bạn đoán ${formatEstimate(guess, step.range.unit)}, lệch ${formatEstimate(diff, step.range.unit)}.`,
+      emoji: last.points >= 900 ? "🎯" : last.points >= 500 ? "👏" : "😅",
+    };
+  } else if (isPoll && last.correct) message = { theme: "positive", title: `Bạn thuộc số đông! +${last.points}`, body: "Nhiều bạn trong lớp cũng thích giống bạn.", emoji: "🙌" };
   else if (isPoll) message = { theme: "info", title: "Bạn thuộc số ít", body: "Khác biệt cũng là điểm thú vị!", emoji: "🦄" };
-  else if (last.correct) message = { theme: "positive", title: `Chính xác! +${formatPoints(last.points)}`, body: view.me.streak >= 2 ? `Chuỗi ${view.me.streak} câu đúng liên tiếp 🔥` : "Nhanh và đúng, tuyệt lắm!", emoji: "🎉" };
+  else if (last.correct) message = { theme: "positive", title: `Chính xác! +${formatPoints(last.points)}`, body: view.me.streak >= 2 ? <>{`Chuỗi ${view.me.streak} câu đúng liên tiếp `}<Emoji>🔥</Emoji></> : "Nhanh và đúng, tuyệt lắm!", emoji: "🎉" };
   else {
     const answer = step.answer ?? 0;
     message = { theme: "negative", title: "Chưa đúng rồi", body: step.images ? `Đáp án đúng là phương án ${optionLetter(answer)}.` : `Đáp án đúng là ${optionLetter(answer)}: ${step.options?.[answer] ?? ""}`, emoji: "😅" };
   }
-  const celebrate = Boolean(last?.correct && !isPoll);
+  const celebrate = Boolean(last?.correct && !isPoll) || Boolean(step.range && last && last.points >= 750);
 
   return (
     <Stack gap="lg">
@@ -560,7 +581,7 @@ function Reveal({ view }: { view: PlayerView }) {
       </InlineMessage>
       <MyScore view={view} />
       <QuestionHeader view={view} />
-      <Answers step={step} state="reveal" chosen={last?.choice ?? null} />
+      {step.range ? <EstimateResult step={step} mine={last?.answered ? (last.choice ?? null) : null} /> : <Answers step={step} state="reveal" chosen={last?.choice ?? null} />}
       {step.explain && (
         <InlineMessage theme="info" title={step.principle ? `Nguyên tắc: ${step.principle}` : "Vì sao?"}>
           {step.explain}
@@ -603,33 +624,61 @@ function Challenge({ view }: { view: PlayerView }) {
               {`Bạn được ${points(view.me.challenge?.score ?? 0)} ở lượt này.`}
             </InlineMessage>
           )}
-          {step.game === "color" ? (
-            <ColorGame stepId={step.id} seed={step.seed!} server={view.me.challenge} running={!over} />
-          ) : step.game === "reaction" ? (
-            <ReactionGame stepId={step.id} seed={step.seed!} server={view.me.challenge} running={!over} />
-          ) : (
-            <CenterGame stepId={step.id} seed={step.seed!} server={view.me.challenge} running={!over} />
-          )}
+          {step.game === "color" && <ColorGame stepId={step.id} seed={step.seed!} server={view.me.challenge} running={!over} />}
+          {step.game === "reaction" && <ReactionGame stepId={step.id} seed={step.seed!} server={view.me.challenge} running={!over} />}
+          {step.game === "center" && <CenterGame stepId={step.id} seed={step.seed!} server={view.me.challenge} running={!over} />}
+          {step.game === "memory" && <MemoryGame stepId={step.id} seed={step.seed!} server={view.me.challenge} running={!over} />}
+          {step.game === "tap" && <TapGame stepId={step.id} server={view.me.challenge} running={!over} />}
         </>
       )}
     </Stack>
   );
 }
 
+/** Tiêu đề bảng xếp hạng kiểu game: tên, dòng phụ và hạng của bạn. */
+function BoardTitle({ title, caption }: { title: string; caption?: string }) {
+  return (
+    <Stack gap="2xs" align="center">
+      <Heading level={2} textStyle="Heading/1" align="center">
+        {title}
+      </Heading>
+      {caption && (
+        <Text tone="base" align="center">
+          {caption}
+        </Text>
+      )}
+    </Stack>
+  );
+}
+
+/** Bục top 3, các hạng tiếp theo và (nếu chưa có trong top) hàng của chính bạn. */
+function Board({ view }: { view: PlayerView }) {
+  const entries = rankEntries(view.top, view.teams);
+  const mine = view.top.some((player) => player.id === view.me.id)
+    ? []
+    : rankEntries([{ ...view.me, connected: true, streak: view.me.streak }], view.teams);
+  return (
+    <Stack gap="md">
+      <Podium entries={entries} label="Top 3 cả lớp" />
+      <RankList entries={[...entries.slice(3), ...mine]} label="Các hạng tiếp theo" meId={view.me.id} />
+      <Stack direction="row" gap="xs" align="center" justify="center">
+        <Icon name="icon-refresh-cw-01-line" size="sm" tone="light" decorative />
+        <Text textStyle="Body/Small/Regular" tone="base">{`Bạn đang đứng hạng ${view.me.rank}/${view.playerCount} · ${points(view.me.score)}`}</Text>
+      </Stack>
+    </Stack>
+  );
+}
+
 function Standing({ view }: { view: PlayerView }) {
+  const step = view.step;
+  const game = step ? GAMES[step.game] : null;
   return (
     <Stack gap="lg">
-      <Card theme="subtle" color="brand">
-        <Stack gap="2xs" align="center" paddingY="md">
-          <Text tone="base">Bạn đang đứng</Text>
-          <Heading level={2} textStyle="Display/2" align="center">{`${medal(view.me.rank, view.me.score) ?? ""} Hạng ${view.me.rank}`.trim()}</Heading>
-          <Text textStyle="Body/Extra/Medium" tone="base">{`trên ${view.playerCount} người · ${points(view.me.score)}`}</Text>
-        </Stack>
-      </Card>
+      <BoardTitle title="Bảng xếp hạng" caption={game ? (step?.kind === "challenge" ? `Sau lượt ${game.title}` : `Sau câu ${step?.number}/${step?.total} · ${game.title}`) : undefined} />
+      <Board view={view} />
       {view.settings.mode === "team" && <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} highlightId={view.me.teamId} />}
-      <PlayerStandings players={view.top} teams={view.teams} meId={view.me.id} title="Top 5" />
       <Text tone="base" align="center">
-        Nhìn lên màn hình chiếu, câu tiếp theo sắp tới…
+        Nhìn lên màn hình chiếu, phần tiếp theo sắp tới…
       </Text>
     </Stack>
   );
@@ -642,24 +691,14 @@ function Final({ view }: { view: PlayerView }) {
   return (
     <Stack gap="lg">
       {celebrate && <Confetti />}
-      <Card theme="subtle" color="brand">
-        <Stack gap="sm" align="center" paddingY="md">
-          <Text as="span" textStyle="Display-Extra/2" aria-hidden="true">
-            {medal(view.me.rank, view.me.score) ?? "🎉"}
-          </Text>
-          <Heading level={2} textStyle="Heading/1" align="center">{`Bạn xếp hạng ${view.me.rank}/${view.playerCount}`}</Heading>
-          <Text textStyle="Body/Extra/Medium" tone="base">
-            {points(view.me.score)}
-          </Text>
-        </Stack>
-      </Card>
+      <BoardTitle title="Kết quả chung cuộc" caption={`Bạn xếp hạng ${view.me.rank}/${view.playerCount} · ${points(view.me.score)}`} />
       {team && champion && (
-        <InlineMessage theme={team.id === champion.id ? "positive" : "info"} title={team.id === champion.id ? `Team ${team.name} vô địch! 🏆` : `Team ${team.name} đứng hạng ${team.rank}/${view.teams.length}`}>
+        <InlineMessage theme={team.id === champion.id ? "positive" : "info"} title={team.id === champion.id ? <>{`Team ${team.name} vô địch! `}<Emoji>🏆</Emoji></> : `Team ${team.name} đứng hạng ${team.rank}/${view.teams.length}`}>
           {team.id === champion.id ? "Cả team đã chơi rất tốt." : `Team ${champion.name} vô địch lần này.`}
         </InlineMessage>
       )}
+      <Board view={view} />
       {view.settings.mode === "team" && <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} highlightId={view.me.teamId} />}
-      <PlayerStandings players={view.top} teams={view.teams} meId={view.me.id} title="Top 5 cả lớp" />
       <InlineMessage theme="neutral" title="Hẹn gặp ở buổi học đầu tiên!">
         Cảm ơn bạn đã tham gia khởi động khoá học UI/UX.
       </InlineMessage>

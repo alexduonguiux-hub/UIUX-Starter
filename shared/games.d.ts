@@ -2,7 +2,7 @@ import type { CardProps, DockIconTheme, IconName } from "@zen-ds/react";
 
 export type CardColor = NonNullable<CardProps["color"]>;
 
-export type GameId = "poll" | "whois" | "rebus" | "quiz" | "ab" | "reaction" | "color" | "center";
+export type GameId = "poll" | "whois" | "truth" | "rebus" | "estimate" | "quiz" | "ab" | "reaction" | "tap" | "memory" | "color" | "center";
 export type GameSet = "warmup" | "uiux";
 export type GameCounts = Record<GameId, number>;
 export interface GameMeta {
@@ -13,11 +13,10 @@ export interface GameMeta {
   emoji: string;
   /** Emoji trang trí quanh hình chính ở màn giới thiệu. */
   art: string[];
-  theme: DockIconTheme & ("pink" | "yellow" | "blue" | "violet" | "green" | "orange");
+  /** Màu của Badge/DockIcon, cùng sắc với `card` ("pink" là màu brand). */
+  theme: DockIconTheme & ("pink" | "yellow" | "violet" | "green" | "cyan");
   /** Màu thẻ Subtle. */
   card: CardColor;
-  /** Màu thẻ Solid (chỉ neutral, brand, cyan, yellow, orange, accent có Solid). */
-  hero: "neutral" | "brand" | "cyan" | "yellow" | "orange" | "accent";
   short: string;
   howTo: string[];
   seconds: number;
@@ -25,7 +24,7 @@ export interface GameMeta {
 }
 export declare const GAMES: Record<GameId, GameMeta>;
 export declare const GAME_ORDER: GameId[];
-export type PackId = "quick" | "full" | "uiux";
+export type PackId = "quick" | "full" | "active" | "uiux";
 export declare const PACKS: Record<PackId, { title: string; set: GameSet; games: GameCounts }>;
 export declare function estimateSeconds(games: GameCounts): number;
 export interface TeamPreset {
@@ -33,7 +32,7 @@ export interface TeamPreset {
   name: string;
   emoji: string;
   icon: IconName;
-  theme: "violet" | "blue" | "orange" | "green" | "pink" | "teal";
+  theme: "cyan" | "pink" | "yellow" | "green" | "violet" | "orange";
   card: CardColor;
 }
 export declare const TEAM_PRESETS: TeamPreset[];
@@ -49,6 +48,13 @@ export declare const REACTION_MAX: number;
 export declare const REACTION_MIN_MS: number;
 export declare function reactionPoints(ms: number): number;
 export declare function reactionDelays(seed: string): number[];
+export declare const MEMORY_PAIRS: number;
+export declare const MEMORY_POINTS: number;
+export declare const MEMORY_TIME_BONUS: number;
+export declare const TAP_POINTS: number;
+export declare const TAP_MAX_RATE: number;
+export declare function estimatePoints(guess: number, answer: number, min: number, max: number): number;
+export declare function memoryDeck(seed: string): string[];
 export declare const COLOR_POINTS: number;
 export declare const CENTER_MAX: number;
 export declare const CENTER_ROUNDS: number;

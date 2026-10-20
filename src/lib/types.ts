@@ -12,7 +12,7 @@ export interface TeamStanding extends TeamPreset {
 }
 
 /** Hình minh hoạ của câu hỏi: ô màu, hình SVG, chuỗi emoji (Đuổi hình bắt chữ) hoặc trích dẫn (Ai là ai?). */
-export type StepVisual = QuizVisual | { type: "emoji"; text: string; caption: string } | { type: "quote"; text: string };
+export type StepVisual = QuizVisual | { type: "emoji"; text: string; /** Loại câu đố (Đuổi hình bắt chữ); rỗng thì không hiện nhãn. */ caption: string } | { type: "quote"; text: string };
 
 export interface StepView {
   id: string;
@@ -27,6 +27,10 @@ export interface StepView {
   options?: string[];
   /** Emoji minh hoạ cho từng lựa chọn (Đoán số đông) hoặc avatar (Ai là ai?). */
   optionArt?: string[] | null;
+  /** Đoán gần đúng: khoảng giá trị của thanh trượt. */
+  range?: { min: number; max: number; step: number; unit: string } | null;
+  /** Đoán gần đúng, sau khi công bố: đáp án, trung bình cả lớp và 3 bạn đoán sát nhất. */
+  estimate?: { answer: number; average: number | null; closest: Array<{ id: string; name: string; avatar: string; guess: number }> } | null;
   images?: Array<{ svg: string; alt: string }> | null;
   visual?: StepVisual | null;
   principle?: string | null;
@@ -84,6 +88,10 @@ export interface ChallengeState {
   lockedUntil: number;
   /** Phản xạ nhanh: thời gian tốt nhất (ms). */
   best: number | null;
+  /** Đua bấm: số lần bấm được tính. */
+  taps: number;
+  /** Lật hình ghép đôi: vị trí các thẻ đã ghép. */
+  matched: number[];
 }
 
 export interface PlayerView extends CommonView {
