@@ -61,7 +61,7 @@ export function Answers({ step, state, chosen = null, onChoose, large = false, d
           >
             <Stack gap="sm">
               {pictures?.[index] && (
-                <Box maxWidth={large ? 400 : undefined} width="fill" alignSelf="center">
+                <Box className={large ? "answer-picture" : undefined} maxWidth={large ? 400 : undefined} width="fill" alignSelf="center">
                   <Image src={svgUrl(pictures[index].svg)} alt={pictures[index].alt} ratio={4 / 3} fit="contain" radius="lg" loading="eager" />
                 </Box>
               )}

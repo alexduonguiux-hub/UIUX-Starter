@@ -78,6 +78,8 @@ export function ReactionGame({ stepId, seed, server, running }: { stepId: string
   }, [running, phase, round, stepId]);
 
   const fill = phase === "go" ? "positive-solid" : phase === "wait" ? "negative-solid" : phase === "early" ? "warning-solid" : "info-solid";
+  // Nền vàng "Sớm quá" cần chữ tối: chữ trắng trên vàng chỉ đạt 1.71:1.
+  const onBright = phase === "early";
   const big = phase === "go" ? "👆" : phase === "wait" ? "✋" : phase === "early" ? "😅" : phase === "done" ? "🏁" : "⚡";
   const title =
     phase === "go"
@@ -119,11 +121,11 @@ export function ReactionGame({ stepId, seed, server, running }: { stepId: string
         <Shape position="absolute" constraintX="left-right" constraintY="top-bottom" type="rectangle" fill={fill} />
         <Stack position="absolute" constraintX="left-right" constraintY="center" gap="xs" align="center">
           <EmojiArt size="xl">{big}</EmojiArt>
-          <Text textStyle="Display/3" tone="on-colors" align="center" tabularNumbers>
+          <Text textStyle="Display/3" tone={onBright ? "on-brights" : "on-colors"} align="center" tabularNumbers>
             {title}
           </Text>
           {caption && (
-            <Text textStyle="Heading/4" tone="on-colors" align="center">
+            <Text textStyle="Heading/4" tone={onBright ? "on-brights" : "on-colors"} align="center">
               {caption}
             </Text>
           )}

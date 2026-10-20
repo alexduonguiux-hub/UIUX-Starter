@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import {
   ActionBar,
   AlertBanner,
@@ -49,10 +49,31 @@ type Act = (action: "next" | "skip" | "shuffle" | "restart" | "finish" | "kick",
  * - Lề an toàn theo chiều rộng màn hình, vì nhiều máy chiếu cắt mất mép hình.
  */
 
-/** Số dòng của một danh sách điểm vừa với sân khấu ở chiều cao màn chiếu hiện tại (mỗi dòng khoảng 72px). */
-function useListRows(max: number) {
-  const height = useViewportHeight();
-  return Math.max(3, Math.min(max, Math.floor((height - 420) / 72)));
+/**
+ * Số dòng của một danh sách điểm vừa với cột chứa nó, đo trực tiếp: vị trí dòng đầu, chiều cao một dòng và
+ * lề dưới của hộp danh sách. Đo lại khi cột đổi cỡ (đổi màn chiếu, bật/tắt thanh tiến trình).
+ */
+function useRowsThatFit(ref: RefObject<HTMLDivElement | null>, max: number, min = 3) {
+  const [rows, setRows] = useState(max);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const item = el.querySelector("li");
+      if (!item) return;
+      const box = el.getBoundingClientRect();
+      const first = item.getBoundingClientRect();
+      const listBox = el.firstElementChild;
+      const bottom = listBox ? parseFloat(getComputedStyle(listBox).paddingBottom) || 0 : 0;
+      const fit = Math.floor((el.clientHeight - (first.top - box.top) - bottom) / (first.height + 2));
+      setRows(Math.max(min, Math.min(max, fit)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, max, min]);
+  return rows;
 }
 
 /** Chiều cao cửa sổ, để mã QR và bục nhận giải co giãn theo màn chiếu. */
@@ -229,7 +250,7 @@ function PlayerRow({ player, act, team }: { player: HostPlayer; act: Act; team: 
 function PlayerBubble({ player, team }: { player: HostPlayer; team: HostView["teams"][number] | null }) {
   return (
     <div className="pop-in">
-      <Stack gap="2xs" align="center" width={112}>
+      <Stack gap="2xs" align="center" width={88}>
         <PlayerAvatar name={player.name} avatar={player.avatar} team={team} size="xl" />
         <Text textStyle="Body/Base/Medium" align="center" truncate={2} tone={player.connected ? "strongest" : "light"}>
           {player.name}
@@ -280,21 +301,22 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
       </Box>
 
       <div className="host-column">
-        <Stack direction="row" gap="xs" align="center" wrap>
-          <Heading level={2} textStyle="Heading/2">
-            Người chơi
-          </Heading>
-          {count > 0 && <BadgeCounter value={count} />}
-          {asksFacts && count > 0 && (
-            <Badge theme={GAMES.whois.theme} background="subtle" leading={<Emoji>🕵️</Emoji>}>{`${view.factCount}/${count} bạn đã viết điều thú vị`}</Badge>
-          )}
-          <Stack direction="row" width="fill" justify="end">
-            {count > 0 && (
-              <Button level="tertiary" size="sm" startIcon="icon-users-line" onClick={() => setManaging(true)}>
-                Quản lý người chơi
-              </Button>
+        {/* Tiêu đề và nhãn bên trái, nút quản lý bên phải; màn hẹp thì nút xuống dòng thay vì đè lên nhãn. */}
+        <Stack direction="row" gap="sm" align="center" justify="between" wrap>
+          <Stack direction="row" gap="xs" align="center" wrap>
+            <Heading level={2} textStyle="Heading/2">
+              Người chơi
+            </Heading>
+            {count > 0 && <BadgeCounter value={count} />}
+            {asksFacts && count > 0 && (
+              <Badge theme={GAMES.whois.theme} background="subtle" leading={<Emoji>🕵️</Emoji>}>{`${view.factCount}/${count} bạn đã viết điều thú vị`}</Badge>
             )}
           </Stack>
+          {count > 0 && (
+            <Button level="tertiary" size="sm" startIcon="icon-users-line" onClick={() => setManaging(true)}>
+              Quản lý người chơi
+            </Button>
+          )}
         </Stack>
         <div className="host-scroll">
           {count === 0 ? (
@@ -310,7 +332,11 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
               </Stack>
             </Box>
           ) : teamMode ? (
-            <Grid columns={{ mobile: 1, tablet: 2, desktop: view.teams.length > 4 ? 3 : 2 }} gap="md">
+            <Grid
+              // Số cột theo bề rộng thật của cột phải: mỗi thẻ team rộng tối thiểu 240px, đủ cho "Team Vector" trên một dòng.
+              columns={{ mobile: 1, tablet: "repeat(auto-fill, minmax(240px, 1fr))", desktop: "repeat(auto-fill, minmax(240px, 1fr))" }}
+              gap="md"
+            >
               {view.teams.map((team) => {
                 const members = byName.filter((p) => p.teamId === team.id);
                 return (
@@ -318,10 +344,12 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
                     <Stack gap="sm">
                       <Stack direction="row" gap="sm" align="center">
                         <TeamMark team={team} size="sm" />
-                        <Heading level={3} textStyle="Heading/4" width="fill">
-                          {`Team ${team.name}`}
-                        </Heading>
-                        <Text as="span" textStyle="Body/Base/Medium" tone="base">{`${members.length} người`}</Text>
+                        <Stack gap="none" width="fill">
+                          <Heading level={3} textStyle="Heading/4" truncate>
+                            {`Team ${team.name}`}
+                          </Heading>
+                          <Text as="span" textStyle="Body/Base/Regular" tone="base">{`${members.length} người`}</Text>
+                        </Stack>
                       </Stack>
                       {members.length ? (
                         <Stack direction="row" gap="sm" wrap>
@@ -510,7 +538,7 @@ function Question({ view, act }: { view: HostView; act: Act }) {
   }
   return (
     <Stage head={head} footer={footer}>
-      <div className="host-column host-answers-fill">
+      <div className={step.images ? "host-column" : "host-column host-answers-fill"}>
         <Answers step={step} state={revealed ? "reveal" : "waiting"} large dense={compact} />
       </div>
     </Stage>
@@ -533,7 +561,8 @@ function rankByChallenge(players: HostPlayer[]) {
 function Challenge({ view, act }: { view: HostView; act: Act }) {
   const step = view.step;
   const now = useServerNow(200);
-  const rows = useListRows(8);
+  const listRef = useRef<HTMLDivElement>(null);
+  const rows = useRowsThatFit(listRef, 8);
   const ranked = useMemo(() => rankByChallenge(view.players).slice(0, rows), [view.players, rows]);
   if (!step) return null;
   const game = GAMES[step.game];
@@ -583,7 +612,7 @@ function Challenge({ view, act }: { view: HostView; act: Act }) {
       layout={teamMode ? "half" : "single"}
       footer={<ActionBar direction="horizontal" summary={summaryText("Lượt chơi tự kết thúc khi hết giờ")} primaryAction={{ label: "Kết thúc lượt chơi", onClick: () => act("next") }} />}
     >
-      <div className="host-scroll">
+      <div className="host-scroll" ref={listRef}>
         <PlayerStandings players={ranked} teams={view.teams} title="Điểm lượt này" caption={`${ranked.length} bạn dẫn đầu`} scoreOf={(player) => (player as HostPlayer).challengeScore} />
       </div>
       {teamMode && (
@@ -699,15 +728,17 @@ function Final({ view, act }: { view: HostView; act: Act }) {
       }
       layout={side ? "board" : "single"}
       footer={
-        <ActionBar
-          direction="horizontal"
-          summary={summaryText("Cảm ơn cả lớp! Hẹn gặp ở buổi học đầu tiên.")}
-          secondaryAction={{ label: "Tạo phòng mới", onClick: () => navigate("/host") }}
-          primaryAction={{ label: "Chơi lại với lớp này", onClick: () => act("restart") }}
-        />
+        <>
+          <Confetti />
+          <ActionBar
+            direction="horizontal"
+            summary={summaryText("Cảm ơn cả lớp! Hẹn gặp ở buổi học đầu tiên.")}
+            secondaryAction={{ label: "Tạo phòng mới", onClick: () => navigate("/host") }}
+            primaryAction={{ label: "Chơi lại với lớp này", onClick: () => act("restart") }}
+          />
+        </>
       }
     >
-      <Confetti />
       <div className="host-podium">
         <Podium entries={rankEntries(view.players.slice(0, 3), view.teams)} size="lg" label="Top 3 chung cuộc" />
       </div>

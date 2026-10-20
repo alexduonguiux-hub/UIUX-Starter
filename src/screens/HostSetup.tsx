@@ -131,7 +131,7 @@ export function HostSetup() {
                       aria-label="Số team"
                       value={teamCount}
                       onValueChange={setTeamCount}
-                      options={Array.from({ length: MAX_TEAMS - MIN_TEAMS + 1 }, (_, i) => ({ id: String(MIN_TEAMS + i), label: `${MIN_TEAMS + i} team` }))}
+                      options={Array.from({ length: MAX_TEAMS - MIN_TEAMS + 1 }, (_, i) => ({ id: String(MIN_TEAMS + i), label: String(MIN_TEAMS + i) }))}
                     />
                   </FormFieldset>
                   <FormFieldset legend="Chia team" kind="radio">

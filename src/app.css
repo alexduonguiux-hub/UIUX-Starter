@@ -661,3 +661,36 @@
   height: 100%;
   max-height: 280px;
 }
+
+/* Đáp án dạng hình (A hay B?) trên màn chiếu: hình 4:3 cao tối đa 26% màn hình, để thẻ cùng thanh kết quả vừa khung. */
+.host .answer-picture {
+  max-width: min(400px, calc(26vh * 4 / 3));
+}
+
+@media (max-height: 800px) {
+  .host .answer-picture {
+    max-width: calc(22vh * 4 / 3);
+  }
+}
+
+/* Chuỗi emoji của câu đố: luôn một dòng, cỡ hình co theo bề ngang khung (--n là số emoji). */
+.emoji-seq {
+  --seq-max: var(--zen-typography-font-size-display-extra-1);
+  container-type: inline-size;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.emoji-seq--large {
+  --seq-max: calc(var(--zen-typography-font-size-display-extra-1) * 1.4);
+}
+
+.emoji-seq .emoji-art {
+  font-size: min(var(--seq-max), calc(100cqw / (var(--n) * 1.32)));
+  letter-spacing: 0;
+}
+
+.emoji-seq .emoji {
+  flex-wrap: nowrap;
+}

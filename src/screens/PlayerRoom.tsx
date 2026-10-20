@@ -420,7 +420,7 @@ function Intro({ view }: { view: PlayerView }) {
   if (!game || !view.step) return null;
   return (
     <Stack gap="lg">
-      <Card theme="subtle" color="brand">
+      <Card theme="subtle" color={game.card}>
         <Stack gap="sm" align="center" paddingY="md">
           <HeroArt main={game.emoji} bits={game.art} size="md" />
           <Text as="span" textStyle="Body/Base/Medium" tone="base">{`Phần ${view.step.section}/${view.sections.length}`}</Text>

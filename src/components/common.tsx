@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Avatar, Badge, Box, DockIcon, Image, ProgressBar, Stack, Text, type DockIconProps } from "@zen-ds/react";
 import { GAMES, type GameId, type TeamPreset } from "../../shared/games.js";
 import { useServerNow } from "../lib/clock";
 import { initials, secondsLeft, svgUrl } from "../lib/format";
 import type { StepVisual } from "../lib/types";
-import { Emoji, EmojiArt, emojiSrc } from "./Fun";
+import { Emoji, EmojiArt, emojiSrc, splitGraphemes } from "./Fun";
 
 /** Biểu tượng của một trò chơi: emoji 3D trên ô tròn. */
 export function GameMark({ game, size = "md" }: { game: GameId; size?: DockIconProps["size"] }) {
@@ -96,9 +96,12 @@ export function QuestionVisual({ visual, large = false }: { visual: StepVisual; 
               {visual.caption}
             </Badge>
           )}
-          <EmojiArt size={large ? "xl" : "lg"} float label={`Câu đố bằng emoji: ${visual.text}`}>
-            {visual.text}
-          </EmojiArt>
+          {/* Câu đố là một chuỗi emoji: luôn một dòng, cỡ hình tự co theo bề ngang khung. */}
+          <div className={`emoji-seq${large ? " emoji-seq--large" : ""}`} style={{ "--n": Math.max(1, splitGraphemes(visual.text).filter((part) => part.trim()).length) } as CSSProperties}>
+            <EmojiArt size={large ? "xl" : "lg"} float label={`Câu đố bằng emoji: ${visual.text}`}>
+              {visual.text}
+            </EmojiArt>
+          </div>
         </Stack>
       </Box>
     );
