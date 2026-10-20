@@ -43,7 +43,7 @@ export function Home() {
   };
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl" className="page">
       {/* Điện thoại: một cột (giới thiệu, vào phòng, trò chơi, giảng viên). Desktop: hai cột, trò chơi ở cột phải. */}
       <div className="home-grid">
         <div className="home-grid__hero">

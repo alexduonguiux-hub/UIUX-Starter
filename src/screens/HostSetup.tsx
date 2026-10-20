@@ -100,129 +100,132 @@ export function HostSetup() {
   ];
 
   return (
-    <Container maxWidth="lg">
-      <Stack gap="xl" paddingY="lg">
-        <PageHeader
-          title="Tạo phòng chơi"
-          description="Chọn cách chơi và các trò chơi. Học viên quét mã QR trên màn hình chiếu để vào phòng."
-          back={{ label: "Trang chủ", onClick: () => navigate("/") }}
-        />
+    <Container maxWidth="xl" className="page">
+      {/* Cao ít nhất bằng cửa sổ: nội dung ngắn (màn lớn) thì thanh hành động vẫn nằm sát đáy, không lơ lửng giữa trang. */}
+      <div className="page-fill">
+        <Stack gap="xl" paddingY="lg">
+          <PageHeader
+            title="Tạo phòng chơi"
+            description="Chọn cách chơi và các trò chơi. Học viên quét mã QR trên màn hình chiếu để vào phòng."
+            back={{ label: "Trang chủ", onClick: () => navigate("/") }}
+          />
 
-        {/* Desktop: cách chơi bên trái, chọn trò chơi bên phải. Điện thoại: xếp dọc theo cùng thứ tự. */}
-        <Grid columns={{ mobile: 1, tablet: 1, desktop: "minmax(0, 5fr) minmax(0, 7fr)" }} gap="xl" align="start">
-          <Box surface="surface" radius="2xl" padding="xl">
-            <Stack gap="lg">
+          {/* Desktop: cách chơi bên trái, chọn trò chơi bên phải. Điện thoại: xếp dọc theo cùng thứ tự. */}
+          <Grid columns={{ mobile: 1, tablet: 1, desktop: "minmax(0, 5fr) minmax(0, 7fr)" }} gap="xl" align="start">
+            <Box surface="surface" radius="2xl" padding="xl">
+              <Stack gap="lg">
+                <Heading level={2} textStyle="Heading/4">
+                  Cách chơi
+                </Heading>
+                <Segmented
+                  aria-label="Cách chơi"
+                  value={mode}
+                  onValueChange={(value) => setMode(value as "team" | "solo")}
+                  options={[
+                    { id: "team", label: "Theo team" },
+                    { id: "solo", label: "Cá nhân" },
+                  ]}
+                />
+                {mode === "team" ? (
+                  <>
+                    <FormFieldset legend="Số team">
+                      <Segmented
+                        aria-label="Số team"
+                        value={teamCount}
+                        onValueChange={setTeamCount}
+                        options={Array.from({ length: MAX_TEAMS - MIN_TEAMS + 1 }, (_, i) => ({ id: String(MIN_TEAMS + i), label: String(MIN_TEAMS + i) }))}
+                      />
+                    </FormFieldset>
+                    <FormFieldset legend="Chia team" kind="radio">
+                      <RadioButton name="assign" value="auto" checked={assign === "auto"} onCheckedChange={() => setAssign("auto")} label="Tự động chia đều" caption="Mỗi học viên mới vào được xếp vào team đang ít người nhất. Có thể xáo lại trước khi bắt đầu." />
+                      <RadioButton name="assign" value="choose" checked={assign === "choose"} onCheckedChange={() => setAssign("choose")} label="Học viên tự chọn team" caption="Hợp khi lớp đã ngồi theo nhóm." />
+                    </FormFieldset>
+                    <FormFieldset legend="Điểm của team" kind="radio">
+                      <RadioButton name="teamScore" value="avg" checked={teamScore === "avg"} onCheckedChange={() => setTeamScore("avg")} label="Trung bình mỗi thành viên" caption="Công bằng khi các team chênh nhau số người." />
+                      <RadioButton name="teamScore" value="sum" checked={teamScore === "sum"} onCheckedChange={() => setTeamScore("sum")} label="Tổng điểm cả team" />
+                    </FormFieldset>
+                  </>
+                ) : (
+                  <Text tone="base">Mỗi học viên chơi riêng, chỉ có bảng xếp hạng cá nhân.</Text>
+                )}
+              </Stack>
+            </Box>
+
+            <Stack gap="md">
               <Heading level={2} textStyle="Heading/4">
-                Cách chơi
+                Trò chơi
               </Heading>
-              <Segmented
-                aria-label="Cách chơi"
-                value={mode}
-                onValueChange={(value) => setMode(value as "team" | "solo")}
-                options={[
-                  { id: "team", label: "Theo team" },
-                  { id: "solo", label: "Cá nhân" },
-                ]}
-              />
-              {mode === "team" ? (
-                <>
-                  <FormFieldset legend="Số team">
-                    <Segmented
-                      aria-label="Số team"
-                      value={teamCount}
-                      onValueChange={setTeamCount}
-                      options={Array.from({ length: MAX_TEAMS - MIN_TEAMS + 1 }, (_, i) => ({ id: String(MIN_TEAMS + i), label: String(MIN_TEAMS + i) }))}
-                    />
-                  </FormFieldset>
-                  <FormFieldset legend="Chia team" kind="radio">
-                    <RadioButton name="assign" value="auto" checked={assign === "auto"} onCheckedChange={() => setAssign("auto")} label="Tự động chia đều" caption="Mỗi học viên mới vào được xếp vào team đang ít người nhất. Có thể xáo lại trước khi bắt đầu." />
-                    <RadioButton name="assign" value="choose" checked={assign === "choose"} onCheckedChange={() => setAssign("choose")} label="Học viên tự chọn team" caption="Hợp khi lớp đã ngồi theo nhóm." />
-                  </FormFieldset>
-                  <FormFieldset legend="Điểm của team" kind="radio">
-                    <RadioButton name="teamScore" value="avg" checked={teamScore === "avg"} onCheckedChange={() => setTeamScore("avg")} label="Trung bình mỗi thành viên" caption="Công bằng khi các team chênh nhau số người." />
-                    <RadioButton name="teamScore" value="sum" checked={teamScore === "sum"} onCheckedChange={() => setTeamScore("sum")} label="Tổng điểm cả team" />
-                  </FormFieldset>
-                </>
-              ) : (
-                <Text tone="base">Mỗi học viên chơi riêng, chỉ có bảng xếp hạng cá nhân.</Text>
+              <Grid columns={{ mobile: 1, tablet: 2, desktop: 2 }} gap="md">
+                {packCards.map((card) => (
+                  <Card key={card.id} theme="subtle" color={card.color} spacing="sm" selected={pack === card.id} onClick={() => setPack(card.id)} aria-label={`${card.title}, ${card.time}`}>
+                    <Stack gap="xs">
+                      <EmojiArt size="sm">{card.art}</EmojiArt>
+                      <Heading level={3} textStyle="Heading/Subheading">
+                        {card.title}
+                      </Heading>
+                      <Stack direction="row" gap="2xs" wrap>
+                        <Badge theme="neutral" background="subtle" size="sm" leadingIcon={false}>
+                          {card.tag}
+                        </Badge>
+                        <Badge theme="neutral" background="subtle" size="sm" leadingIcon={false}>
+                          {card.time}
+                        </Badge>
+                      </Stack>
+                      <Text textStyle="Body/Small/Regular" tone="base">
+                        {card.caption}
+                      </Text>
+                    </Stack>
+                  </Card>
+                ))}
+              </Grid>
+
+              {pack === "custom" && (
+                <Box surface="surface" radius="2xl" padding="xl">
+                  <Stack gap="xl">
+                    {(["warmup", "uiux"] as const).map((set) => (
+                      <Stack key={set} gap="md">
+                        <Heading level={3} textStyle="Heading/Subheading">
+                          {SET_TITLES[set]}
+                        </Heading>
+                        <Grid columns={{ mobile: 1, tablet: 2, desktop: 2 }} gap="lg">
+                          {GAME_ORDER.filter((id) => GAMES[id].set === set).map((id) => (
+                            <SelectField
+                              key={id}
+                              label={GAMES[id].title}
+                              helpText={GAMES[id].short}
+                              options={countOptions(id)}
+                              value={String(custom[id])}
+                              onValueChange={(value) => setCustom((current) => ({ ...current, [id]: Number(value) }))}
+                            />
+                          ))}
+                        </Grid>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Box>
               )}
             </Stack>
-          </Box>
+          </Grid>
 
-          <Stack gap="md">
-            <Heading level={2} textStyle="Heading/4">
-              Trò chơi
-            </Heading>
-            <Grid columns={{ mobile: 1, tablet: 2, desktop: 2 }} gap="md">
-              {packCards.map((card) => (
-                <Card key={card.id} theme="subtle" color={card.color} spacing="sm" selected={pack === card.id} onClick={() => setPack(card.id)} aria-label={`${card.title}, ${card.time}`}>
-                  <Stack gap="xs">
-                    <EmojiArt size="sm">{card.art}</EmojiArt>
-                    <Heading level={3} textStyle="Heading/Subheading">
-                      {card.title}
-                    </Heading>
-                    <Stack direction="row" gap="2xs" wrap>
-                      <Badge theme="neutral" background="subtle" size="sm" leadingIcon={false}>
-                        {card.tag}
-                      </Badge>
-                      <Badge theme="neutral" background="subtle" size="sm" leadingIcon={false}>
-                        {card.time}
-                      </Badge>
-                    </Stack>
-                    <Text textStyle="Body/Small/Regular" tone="base">
-                      {card.caption}
-                    </Text>
-                  </Stack>
-                </Card>
-              ))}
-            </Grid>
+          {games.whois > 0 && (
+            <InlineMessage theme="info" title="Về trò “Ai là ai?”">
+              Khi vào phòng, mỗi học viên viết một điều thú vị về mình. Trò này dùng các câu đó, nên hãy nhắc cả lớp viết trước khi bấm Bắt đầu.
+            </InlineMessage>
+          )}
 
-            {pack === "custom" && (
-              <Box surface="surface" radius="2xl" padding="xl">
-                <Stack gap="xl">
-                  {(["warmup", "uiux"] as const).map((set) => (
-                    <Stack key={set} gap="md">
-                      <Heading level={3} textStyle="Heading/Subheading">
-                        {SET_TITLES[set]}
-                      </Heading>
-                      <Grid columns={{ mobile: 1, tablet: 2, desktop: 2 }} gap="lg">
-                        {GAME_ORDER.filter((id) => GAMES[id].set === set).map((id) => (
-                          <SelectField
-                            key={id}
-                            label={GAMES[id].title}
-                            helpText={GAMES[id].short}
-                            options={countOptions(id)}
-                            value={String(custom[id])}
-                            onValueChange={(value) => setCustom((current) => ({ ...current, [id]: Number(value) }))}
-                          />
-                        ))}
-                      </Grid>
-                    </Stack>
-                  ))}
-                </Stack>
-              </Box>
-            )}
-          </Stack>
-        </Grid>
-
-        {games.whois > 0 && (
-          <InlineMessage theme="info" title="Về trò “Ai là ai?”">
-            Khi vào phòng, mỗi học viên viết một điều thú vị về mình. Trò này dùng các câu đó, nên hãy nhắc cả lớp viết trước khi bấm Bắt đầu.
-          </InlineMessage>
-        )}
-
-        {error && (
-          <InlineMessage theme="negative" title="Chưa tạo được phòng">
-            {error}
-          </InlineMessage>
-        )}
-
+          {error && (
+            <InlineMessage theme="negative" title="Chưa tạo được phòng">
+              {error}
+            </InlineMessage>
+          )}
+        </Stack>
         <ActionBar
+          className="bleed-bar"
           direction="horizontal"
           summary={summaryText(rounds > 0 ? `${minutesLabel(estimateSeconds(games))} · ${sections} phần · ${rounds} lượt chơi` : "Chọn ít nhất một trò chơi")}
           primaryAction={{ label: busy ? "Đang tạo phòng…" : "Tạo phòng", onClick: () => void create(), disabled: busy || rounds === 0 }}
         />
-      </Stack>
+      </div>
     </Container>
   );
 }

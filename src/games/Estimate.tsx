@@ -74,7 +74,8 @@ export function EstimateAnswer({ step, large = false, mine = null }: { step: Ste
 }
 
 /** Ba bạn đoán sát nhất. */
-export function EstimateClosest({ step, large = false }: { step: StepView; large?: boolean }) {
+/** `limit`: số bạn hiện ra (màn chiếu thấp chỉ đủ chỗ cho 2 bạn). */
+export function EstimateClosest({ step, large = false, limit }: { step: StepView; large?: boolean; limit?: number }) {
   const result = step.estimate;
   const range = step.range;
   if (!result || !range || result.closest.length === 0) return null;
@@ -84,7 +85,7 @@ export function EstimateClosest({ step, large = false }: { step: StepView; large
         Đoán sát nhất
       </Heading>
       <List aria-label="Các bạn đoán sát nhất">
-        {result.closest.map((guess, index) => (
+        {result.closest.slice(0, limit).map((guess, index) => (
           <ListItem
             key={guess.id}
             leading={<PlayerAvatar name={guess.name} avatar={guess.avatar} size={large ? "lg" : "md"} />}

@@ -1,5 +1,5 @@
-import type { CSSProperties, ReactNode } from "react";
-import { Avatar, Badge, Box, DockIcon, Image, ProgressBar, Stack, Text, type DockIconProps } from "@zen-ds/react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { Avatar, Badge, Box, DockIcon, Image, Stack, Text, type DockIconProps } from "@zen-ds/react";
 import { GAMES, type GameId, type TeamPreset } from "../../shared/games.js";
 import { useServerNow } from "../lib/clock";
 import { initials, secondsLeft, svgUrl } from "../lib/format";
@@ -64,33 +64,56 @@ export function AvatarTile({ name, avatar, size = "md" }: { name: string; avatar
   );
 }
 
-/** Đồng hồ: số giây còn lại và thanh thời gian đã trôi qua. */
+/**
+ * Đồng hồ đếm ngược dạng vòng tròn: số giây ở giữa, vòng màu ngắn dần theo thời gian còn lại, 5 giây cuối chuyển đỏ.
+ * `lg` cho màn chiếu (co theo chiều cao màn hình), `md` cho điện thoại.
+ */
 export function Timer({ startsAt, endsAt, size = "md" }: { startsAt: number | null; endsAt: number | null; size?: "md" | "lg" }) {
   const now = useServerNow(200);
   const left = secondsLeft(endsAt, now);
   const total = startsAt && endsAt ? endsAt - startsAt : 1;
-  const elapsed = startsAt && endsAt ? Math.min(100, Math.max(0, ((now - startsAt) / total) * 100)) : 0;
+  const remaining = startsAt && endsAt ? Math.min(100, Math.max(0, ((endsAt - now) / total) * 100)) : 100;
+  const urgent = left <= 5;
+  // Màn chiếu thấp: số nhỏ một bậc để vừa lòng vòng tròn đã co lại.
+  const compact = useViewportHeight() < 760;
   return (
-    <Stack gap="2xs" width="fill">
-      <Stack direction="row" justify="between" align="baseline">
-        <Text as="span" textStyle={size === "lg" ? "Heading/4" : "Body/Base/Medium"} tone="base">
-          Thời gian
+    <div className={`timer timer--${size}`} data-urgent={urgent || undefined} role="timer" aria-live="off" aria-label={`Còn ${left} giây`}>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle className="timer__track" cx="50" cy="50" r="45" />
+        {remaining > 0 && <circle className="timer__fill" cx="50" cy="50" r="45" pathLength={100} style={{ strokeDasharray: `${remaining} 100` }} />}
+      </svg>
+      <span className="timer__label" aria-hidden="true">
+        <Text as="span" textStyle={size === "lg" ? (compact ? "Heading/1" : "Display/3") : "Heading/3"} tabularNumbers tone={urgent ? "negative-base" : "strongest"}>
+          {left}
         </Text>
-        <Text as="span" textStyle={size === "lg" ? "Display/3" : "Heading/3"} tabularNumbers tone={left <= 5 ? "negative-base" : "strongest"} role="timer" aria-live="off">
-          {`${left} giây`}
+        <Text as="span" textStyle={size === "lg" ? "Body/Base/Medium" : "Caption/Regular"} tone="base">
+          giây
         </Text>
-      </Stack>
-      <ProgressBar value={elapsed} theme="accent" aria-label="Thời gian đã trôi qua" />
-    </Stack>
+      </span>
+    </div>
   );
 }
 
-/** Hình minh hoạ của câu hỏi: ô màu, hình vẽ, chuỗi emoji hoặc trích dẫn. */
-export function QuestionVisual({ visual, large = false }: { visual: StepVisual; large?: boolean }) {
+/** Chiều cao cửa sổ, cập nhật khi đổi cỡ: màn chiếu dùng để co mã QR, bục nhận giải và cỡ chữ cho vừa khung. */
+export function useViewportHeight() {
+  const [height, setHeight] = useState(() => window.innerHeight);
+  useEffect(() => {
+    const update = () => setHeight(window.innerHeight);
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return height;
+}
+
+/**
+ * Hình minh hoạ của câu hỏi: ô màu, hình vẽ, chuỗi emoji hoặc trích dẫn.
+ * `fill`: khung emoji cao hết ô chứa, hình canh giữa (màn chiếu, khi hình đứng cạnh một ô khác cùng chiều cao).
+ */
+export function QuestionVisual({ visual, large = false, fill = false }: { visual: StepVisual; large?: boolean; fill?: boolean }) {
   if (visual.type === "emoji") {
     return (
-      <Box surface="surface" radius="2xl" padding={large ? "2xl" : "xl"} width="fill">
-        <Stack gap="md" align="center">
+      <Box surface="surface" radius="2xl" padding={large ? "2xl" : "xl"} width="fill" height={fill ? "fill" : undefined}>
+        <Stack gap="md" align="center" justify="center" height={fill ? "fill" : undefined}>
           {visual.caption && (
             <Badge theme="neutral" background="subtle" leadingIcon={false}>
               {visual.caption}
@@ -108,8 +131,8 @@ export function QuestionVisual({ visual, large = false }: { visual: StepVisual; 
   }
   if (visual.type === "quote") {
     return (
-      <Box surface="surface" radius="2xl" padding={large ? "2xl" : "xl"} width="fill">
-        <Stack gap="sm">
+      <Box surface="surface" radius="2xl" padding={large ? "2xl" : "xl"} width="fill" height={fill ? "fill" : undefined}>
+        <Stack gap="sm" justify="center" height={fill ? "fill" : undefined}>
           <Text as="span" textStyle="Display/1" tone="accent-base" aria-hidden="true">
             “
           </Text>

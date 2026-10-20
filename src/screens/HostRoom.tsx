@@ -27,7 +27,7 @@ import {
 } from "@zen-ds/react";
 import { CENTER_ROUNDS, GAMES, MEMORY_PAIRS, REACTION_ROUNDS } from "../../shared/games.js";
 import { Answers } from "../components/Answers";
-import { GameBadge, GameMark, PlayerAvatar, QuestionVisual, TeamMark, Timer, summaryText } from "../components/common";
+import { GameBadge, GameMark, PlayerAvatar, QuestionVisual, TeamMark, Timer, summaryText, useViewportHeight } from "../components/common";
 import { Confetti, Emoji, EmojiArt, HeroArt } from "../components/Fun";
 import { JoinQr, useJoinBase } from "../components/JoinQr";
 import { Podium, PlayerStandings, RankList, TeamStandings, rankEntries } from "../components/Standings";
@@ -59,13 +59,16 @@ function useRowsThatFit(ref: RefObject<HTMLDivElement | null>, max: number, min 
     const el = ref.current;
     if (!el) return;
     const measure = () => {
-      const item = el.querySelector("li");
-      if (!item) return;
+      const items = el.querySelectorAll("li");
+      if (!items.length) return;
       const box = el.getBoundingClientRect();
-      const first = item.getBoundingClientRect();
-      const listBox = el.firstElementChild;
-      const bottom = listBox ? parseFloat(getComputedStyle(listBox).paddingBottom) || 0 : 0;
-      const fit = Math.floor((el.clientHeight - (first.top - box.top) - bottom) / (first.height + 2));
+      const first = items[0].getBoundingClientRect();
+      // Bước giữa hai hàng đo thật (chiều cao hàng cộng khoảng cách), không đoán.
+      const pitch = items.length > 1 ? items[1].getBoundingClientRect().top - first.top : first.height + 2;
+      // Phần không phải hàng (tiêu đề, lề trong của khung danh sách) đo từ chiều cao thật của khối đang hiện.
+      const content = el.firstElementChild?.getBoundingClientRect().height ?? first.top - box.top + first.height;
+      const extra = content - ((items.length - 1) * pitch + first.height);
+      const fit = Math.floor((el.clientHeight - extra - first.height) / pitch) + 1;
       setRows(Math.max(min, Math.min(max, fit)));
     };
     measure();
@@ -74,17 +77,6 @@ function useRowsThatFit(ref: RefObject<HTMLDivElement | null>, max: number, min 
     return () => observer.disconnect();
   }, [ref, max, min]);
   return rows;
-}
-
-/** Chiều cao cửa sổ, để mã QR và bục nhận giải co giãn theo màn chiếu. */
-function useViewportHeight() {
-  const [height, setHeight] = useState(() => window.innerHeight);
-  useEffect(() => {
-    const onResize = () => setHeight(window.innerHeight);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return height;
 }
 
 /** Màn hình giảng viên, chiếu lên máy chiếu. */
@@ -135,7 +127,11 @@ export function HostRoom({ pin }: { pin: string }) {
 
   return (
     <div className="host">
-      <TopBar pin={pin} view={view} act={act} />
+      {/* Dải đầu màn chiếu, tràn hai mép như thanh hành động ở đáy: thanh trên và tiến trình buổi chơi bám vào một khối. */}
+      <header className="host-header">
+        <TopBar pin={pin} view={view} act={act} />
+        {view && view.phase !== "lobby" && view.phase !== "final" && <SectionProgress view={view} />}
+      </header>
       {connection === "reconnecting" && <AlertBanner theme="warning">Mất kết nối tới server, đang kết nối lại…</AlertBanner>}
       {view ? <Phase view={view} act={act} /> : <Text tone="base">Đang mở phòng…</Text>}
     </div>
@@ -144,6 +140,8 @@ export function HostRoom({ pin }: { pin: string }) {
 
 function TopBar({ pin, view, act }: { pin: string; view: HostView | null; act: Act }) {
   const playing = view && view.phase !== "lobby";
+  // Cách vào phòng luôn hiện trên đầu màn chiếu (như Slido, Mentimeter) để bạn đến muộn vẫn vào được khi đang chơi.
+  const site = useJoinBase().replace(/^https?:\/\//, "");
   return (
     <Stack direction="row" gap="sm" align="center" justify="between" wrap>
       <Stack direction="row" gap="sm" align="center">
@@ -153,7 +151,12 @@ function TopBar({ pin, view, act }: { pin: string; view: HostView | null; act: A
         </Text>
         <Badge theme="pink" background="subtle" leadingIcon={false}>{`Phòng ${pin}`}</Badge>
       </Stack>
-      <Stack direction="row" gap="xs" align="center">
+      <Stack direction="row" gap="md" align="center">
+        {playing && (
+          <Text as="span" textStyle="Body/Base/Regular" tone="base">
+            {`Vào muộn? Mở ${site} và nhập mã ${pin}`}
+          </Text>
+        )}
         {view && (
           <Text as="span" textStyle="Body/Base/Medium" tone="base">
             {`${view.playerCount} người chơi`}
@@ -291,10 +294,12 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
   const byName = [...view.players].sort((a, b) => a.name.localeCompare(b.name, "vi"));
   const [managing, setManaging] = useState(false);
   const asksFacts = view.sections.some((section) => section.id === "whois");
-  // Lớp đông (trên 12 bạn): avatar nhỏ hơn một bậc để màn chiếu hiện được nhiều bạn hơn trước khi phải cuộn.
-  const compact = count > 12;
   const height = useViewportHeight();
-  const qrSize = Math.round(Math.min(340, Math.max(180, height * (height < 760 ? 0.3 : 0.34))));
+  // Lớp đông (trên 12 bạn) hoặc màn chiếu thấp: avatar nhỏ hơn một bậc để hiện được nhiều bạn hơn trước khi phải cuộn.
+  const compact = count > 12 || height < 700;
+  // Mã QR, tiêu đề và mã phòng co theo chiều cao màn chiếu: laptop phóng to 150% chỉ còn khoảng 600px.
+  const short = height < 700;
+  const qrSize = Math.round(Math.min(340, Math.max(140, height * (height < 760 ? 0.28 : 0.34))));
 
   return (
     <Stage
@@ -310,7 +315,7 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
     >
       <Box surface="surface" radius="2xl" padding="xl">
         <Stack gap="md" align="center" justify="center" height="fill">
-          <Heading level={1} textStyle="Heading/1" align="center">
+          <Heading level={1} textStyle={short ? "Heading/2" : "Heading/1"} align="center">
             Quét mã để vào phòng
           </Heading>
           <JoinQr url={url} pin={view.pin} size={qrSize} />
@@ -318,7 +323,7 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
             <Text tone="base" align="center">
               hoặc vào trang chủ và nhập mã phòng
             </Text>
-            <Text as="span" textStyle="Display-Extra/1" tabularNumbers align="center" tone="accent-base">
+            <Text as="span" textStyle={short ? "Display/1" : "Display-Extra/1"} tabularNumbers align="center" tone="accent-base">
               {view.pin}
             </Text>
           </Stack>
@@ -359,7 +364,8 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
           ) : teamMode ? (
             <Grid
               // Số cột theo bề rộng thật của cột phải: mỗi thẻ team rộng tối thiểu 240px, đủ cho "Team Vector" trên một dòng.
-              columns={{ mobile: 1, tablet: "repeat(auto-fill, minmax(240px, 1fr))", desktop: "repeat(auto-fill, minmax(240px, 1fr))" }}
+              // Màn chiếu thấp: thẻ hẹp hơn (210px) để 3 team nằm một hàng, khỏi phải cuộn.
+              columns={{ mobile: 1, tablet: `repeat(auto-fill, minmax(${short ? 210 : 240}px, 1fr))`, desktop: `repeat(auto-fill, minmax(${short ? 210 : 240}px, 1fr))` }}
               gap="md"
             >
               {view.teams.map((team) => {
@@ -370,14 +376,15 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
                       <Stack direction="row" gap="sm" align="center">
                         <TeamMark team={team} size="sm" />
                         <Stack gap="none" width="fill">
-                          <Heading level={3} textStyle="Heading/4" truncate>
+                          <Heading level={3} textStyle={short ? "Body/Extra/Bold" : "Heading/4"} truncate>
                             {`Team ${team.name}`}
                           </Heading>
                           <Text as="span" textStyle="Body/Base/Regular" tone="base">{`${members.length} người`}</Text>
                         </Stack>
                       </Stack>
                       {members.length ? (
-                        <Stack direction="row" gap="sm" wrap>
+                        // Canh mép trên: tên một dòng hay hai dòng thì các avatar vẫn thẳng một hàng.
+                        <Stack direction="row" gap="sm" align="start" wrap>
                           {members.map((player) => (
                             <PlayerBubble key={player.id} player={player} team={team} compact={compact} />
                           ))}
@@ -394,7 +401,7 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
             </Grid>
           ) : (
             <Card theme="flat">
-              <Stack direction="row" gap="sm" wrap>
+              <Stack direction="row" gap="sm" align="start" wrap>
                 {byName.map((player) => (
                   <PlayerBubble key={player.id} player={player} team={null} compact={compact} />
                 ))}
@@ -418,41 +425,48 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
 
 function Intro({ view, act }: { view: HostView; act: Act }) {
   const game = view.step ? GAMES[view.step.game] : null;
+  // Màn chiếu thấp (laptop phóng to 150%): chữ nhỏ một bậc để cả thẻ vừa khung, không phải cuộn.
+  const short = useViewportHeight() < 700;
   if (!game || !view.step) return null;
+  // Một thẻ "sẵn sàng" theo màu trò chơi (như màn chờ câu hỏi của Kahoot): hình bên trái, tên và cách chơi bên phải.
   return (
     <Stage
-      head={<SectionProgress view={view} />}
-      layout="half"
       footer={<ActionBar direction="horizontal" summary={summaryText("Học viên cũng đang xem hướng dẫn này trên điện thoại")} primaryAction={{ label: `Bắt đầu ${game.title}`, onClick: () => act("next") }} />}
     >
-      <Card theme="subtle" color={game.card}>
-        <Stack gap="md" align="center" justify="center" height="fill" paddingY="lg">
-          <HeroArt main={game.emoji} bits={game.art} size="xl" />
-          <Text as="span" textStyle="Heading/4" tone="base">{`Phần ${view.step.section}/${view.sections.length}`}</Text>
-          {/* zen-allow-h1-style: màn hình chiếu, cả lớp đọc từ xa nên tiêu đề dùng cỡ Display */}
-          <Heading level={1} textStyle="Display/1" align="center">
-            {game.title}
-          </Heading>
-          <Text textStyle="Body/Extra/Regular" tone="base" align="center">
-            {game.short}
-          </Text>
+      <Card theme="subtle" color={game.card} className="host-intro">
+        <Stack paddingX="2xl" paddingY={short ? "sm" : "xl"}>
+          <Grid columns={{ mobile: 1, desktop: "minmax(0, 5fr) minmax(0, 7fr)" }} gap="2xl" align="center">
+            <div className="intro-art">
+              <HeroArt main={game.emoji} bits={game.art} size="xl" />
+            </div>
+            <Stack gap={short ? "lg" : "xl"}>
+              <Stack gap="xs">
+                <Text as="span" textStyle="Heading/4" tone="base">{`Phần ${view.step.section}/${view.sections.length}`}</Text>
+                {/* zen-allow-h1-style: màn hình chiếu, cả lớp đọc từ xa nên tiêu đề dùng cỡ Display */}
+                <Heading level={1} textStyle={short ? "Display/3" : "Display/1"}>
+                  {game.title}
+                </Heading>
+                <Text textStyle="Body/Extra/Regular" tone="base">
+                  {game.short}
+                </Text>
+              </Stack>
+              <Stack gap={short ? "sm" : "md"}>
+                <Heading level={2} textStyle={short ? "Heading/4" : "Heading/3"}>
+                  Cách chơi
+                </Heading>
+                {game.howTo.map((line, index) => (
+                  <Stack key={line} direction="row" gap="md" align="start">
+                    <BadgeCounter value={index + 1} />
+                    <Text textStyle={short ? "Body/Extra/Medium" : "Heading/4"} width="fill">
+                      {line}
+                    </Text>
+                  </Stack>
+                ))}
+              </Stack>
+            </Stack>
+          </Grid>
         </Stack>
       </Card>
-      <Box surface="surface" radius="2xl" padding="2xl">
-        <Stack gap="lg" justify="center" height="fill">
-          <Heading level={2} textStyle="Heading/2">
-            Cách chơi
-          </Heading>
-          {game.howTo.map((line, index) => (
-            <Stack key={line} direction="row" gap="md" align="start">
-              <BadgeCounter value={index + 1} />
-              <Text textStyle="Heading/4" width="fill">
-                {line}
-              </Text>
-            </Stack>
-          ))}
-        </Stack>
-      </Box>
     </Stage>
   );
 }
@@ -462,7 +476,10 @@ function Intro({ view, act }: { view: HostView; act: Act }) {
 function Question({ view, act }: { view: HostView; act: Act }) {
   const step = view.step;
   // Màn chiếu thấp (dưới 760px): tiêu đề nhỏ hơn một bậc để đáp án vẫn nằm gọn trong khung.
-  const compact = useViewportHeight() < 760;
+  // Rất thấp (dưới 700px, laptop phóng to 150%): đáp án xếp một hàng; khi công bố bỏ hình để nhường chỗ cho số người chọn.
+  const height = useViewportHeight();
+  const compact = height < 760;
+  const tight = height < 700;
   if (!step) return null;
   const game = GAMES[step.game];
   const revealed = view.phase === "reveal";
@@ -482,7 +499,6 @@ function Question({ view, act }: { view: HostView; act: Act }) {
 
   const head = (
     <>
-      <SectionProgress view={view} />
       <Stack direction="row" gap="sm" align="center" justify="between" wrap>
         <GameBadge game={game.id}>{`${game.title} · Câu ${step.number}/${step.total}`}</GameBadge>
         <Text as="span" textStyle="Heading/4" tone="base" role="status">
@@ -490,7 +506,7 @@ function Question({ view, act }: { view: HostView; act: Act }) {
         </Text>
       </Stack>
       {/* Khi công bố, lời giải thích nằm ở chỗ của đồng hồ, để đáp án giữ nguyên chỗ trên sân khấu. */}
-      <Grid columns={{ mobile: 1, desktop: revealed ? (note ? "minmax(0, 1fr) minmax(0, 520px)" : 1) : "minmax(0, 1fr) 340px" }} gap="xl" align="center">
+      <Grid columns={{ mobile: 1, desktop: revealed ? (note ? "minmax(0, 1fr) minmax(0, 520px)" : 1) : "minmax(0, 1fr) auto" }} gap="xl" align="center">
         {/* zen-allow-h1-style: màn hình chiếu, cả lớp đọc từ xa nên tiêu đề dùng cỡ Display */}
         <Heading level={1} textStyle={compact ? "Heading/1" : "Display/3"}>
           {step.prompt}
@@ -509,10 +525,10 @@ function Question({ view, act }: { view: HostView; act: Act }) {
     />
   );
 
-  // Đoán gần đúng: hình bên trái; bên phải là lời nhắc khi đang chơi, đáp án và các bạn đoán sát nhất khi công bố.
+  // Đoán gần đúng: hai ô cao bằng nhau. Khi chơi: hình bên trái, lời nhắc bên phải. Khi công bố: đáp án và các bạn đoán sát nhất.
   if (range) {
     return (
-      <Stage head={head} layout="split" footer={footer}>
+      <Stage head={head} layout={revealed ? "split" : "half"} footer={footer}>
         {revealed ? (
           <Box surface="surface" radius="2xl" padding="xl">
             <Stack justify="center" height="fill">
@@ -520,19 +536,19 @@ function Question({ view, act }: { view: HostView; act: Act }) {
             </Stack>
           </Box>
         ) : (
-          <div className="host-visual">{step.visual && <QuestionVisual visual={step.visual} large />}</div>
+          step.visual && <QuestionVisual visual={step.visual} large fill />
         )}
         {revealed ? (
           <Box surface="surface" radius="2xl" padding="xl">
-            <EstimateClosest step={step} large={!compact} />
+            <EstimateClosest step={step} large={!compact} limit={tight ? 2 : undefined} />
           </Box>
         ) : (
           <Box surface="surface" radius="2xl" padding="2xl">
             <Stack gap="md" align="center" justify="center" height="fill">
-              <EmojiArt size="xl" float>
+              <EmojiArt size={compact ? "lg" : "xl"} float>
                 🤔
               </EmojiArt>
-              <Text textStyle="Display/4" align="center">
+              <Text textStyle={compact ? "Heading/2" : "Display/4"} align="center">
                 Học viên đang kéo thanh trượt trên điện thoại
               </Text>
               <Text textStyle="Body/Extra/Regular" tone="base" align="center">
@@ -545,26 +561,23 @@ function Question({ view, act }: { view: HostView; act: Act }) {
     );
   }
 
-  // Có hình minh hoạ: hình bên trái, đáp án bên phải. Không có hình: đáp án chiếm cả sân khấu.
-  const answers = (
-    <div className="host-column">
-      <Answers step={step} state={revealed ? "reveal" : "waiting"} large dense={compact} />
-    </div>
-  );
-  if (step.visual) {
+  // Có hình minh hoạ: hình bên trái, đáp án bên phải, cả hai cao hết sân khấu. Không có hình: đáp án chiếm cả sân khấu.
+  if (step.visual && !(revealed && tight)) {
     return (
       <Stage head={head} layout="split" footer={footer}>
         <div className="host-visual">
-          <QuestionVisual visual={step.visual} large />
+          <QuestionVisual visual={step.visual} large fill />
         </div>
-        {answers}
+        <div className={step.images ? "host-column" : "host-column host-answers-fill"}>
+          <Answers step={step} state={revealed ? "reveal" : "waiting"} large dense={compact} />
+        </div>
       </Stage>
     );
   }
   return (
     <Stage head={head} footer={footer}>
       <div className={step.images ? "host-column" : "host-column host-answers-fill"}>
-        <Answers step={step} state={revealed ? "reveal" : "waiting"} large dense={compact} />
+        <Answers step={step} state={revealed ? "reveal" : "waiting"} large wide dense={compact} oneRow={tight && !step.images} />
       </div>
     </Stage>
   );
@@ -587,7 +600,7 @@ function Challenge({ view, act }: { view: HostView; act: Act }) {
   const step = view.step;
   const now = useServerNow(200);
   const listRef = useRef<HTMLDivElement>(null);
-  const rows = useRowsThatFit(listRef, 8);
+  const rows = useRowsThatFit(listRef, 8, 2);
   const ranked = useMemo(() => rankByChallenge(view.players).slice(0, rows), [view.players, rows]);
   if (!step) return null;
   const game = GAMES[step.game];
@@ -610,8 +623,7 @@ function Challenge({ view, act }: { view: HostView; act: Act }) {
     <Stage
       head={
         <>
-          <SectionProgress view={view} />
-          <Grid columns={{ mobile: 1, desktop: "minmax(0, 1fr) 360px" }} gap="xl" align="center">
+          <Grid columns={{ mobile: 1, desktop: "minmax(0, 1fr) auto" }} gap="xl" align="center">
             <Stack direction="row" gap="md" align="center">
               <GameMark game={game.id} size="xl" />
               <Stack gap="2xs">

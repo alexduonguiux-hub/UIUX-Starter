@@ -147,7 +147,7 @@ npm run build && npm start
 npx zen-ds audit http://localhost:3000/ --routes=/,/host --dark
 ```
 
-**Bố cục màn chiếu.** Mọi màn của giảng viên nằm gọn trong một khung 16:9, không cần cuộn, ở 1280×720, 1366×640 (laptop chưa bật toàn màn hình) và 1920×1080. Chữ theo thang lớn nhất của Zen ("popular"). Riêng danh sách người chơi ở phòng chờ cuộn bên trong khi lớp đông. Khi trình chiếu, bấm F11 để có nhiều chỗ nhất.
+**Bố cục màn chiếu.** Mọi màn của giảng viên nằm gọn trong một khung 16:9, không cần cuộn, từ 1280×600 (laptop phóng to 150%) tới 1920×1080. Nội dung rộng tối đa 1400px, canh giữa; dải đầu (tên phòng, cách vào phòng, tiến trình) và thanh hành động ở đáy trải hết bề ngang. Chữ theo thang lớn nhất của Zen ("popular"), thẻ đáp án là ô lớn kiểu Kahoot, đồng hồ là vòng tròn đếm ngược. Riêng danh sách người chơi ở phòng chờ cuộn bên trong khi lớp đông. Khi trình chiếu, bấm F11 để có nhiều chỗ nhất.
 
 ## Ý tưởng mở rộng
 

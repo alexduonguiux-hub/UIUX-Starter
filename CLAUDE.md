@@ -31,11 +31,15 @@ Web game khởi động cho học viên UI/UX: server Express + Socket.io (`serv
 
 ## Bố cục desktop
 
-- Màn chiếu nằm gọn một khung 16:9, không cuộn: thanh trên · (tiến trình) · sân khấu `host-main` · ActionBar. Sân khấu hai cột khi có hai loại nội dung (`split` 5/7, `board` 7/5, `half`).
+- Mọi trang desktop rộng tối đa 1400px (`--page-max`), canh giữa: màn chiếu dùng `.host`, trang chủ và trang tạo phòng dùng `Container maxWidth="xl" className="page"` (hạ từ 1440 xuống 1400).
+- Màn chiếu nằm gọn một khung 16:9, không cuộn trang: dải đầu `host-header` (thanh trên và tiến trình) · sân khấu `host-main` · ActionBar. Dải đầu và ActionBar nền trắng tràn hai mép cửa sổ, chữ và nút thẳng lề với sân khấu. Sân khấu hai cột khi có hai loại nội dung (`split` 5/7, `board` 7/5, `half`); mỗi màn là một khối chính, các ô cạnh nhau cao bằng nhau.
+- Thanh trên luôn có cách vào phòng ("Vào muộn? Mở … và nhập mã …") khi đang chơi, như Slido hay Mentimeter.
+- Màn giới thiệu là một thẻ theo màu trò chơi: hình bên trái, tên và cách chơi bên phải. Thẻ đáp án trên màn chiếu là ô lớn kiểu Kahoot (`answer-tile`): biểu tượng và chữ canh giữa thẻ, số người chọn sát đáy; cỡ chữ theo chỗ trống (`wide`, `dense`, đáp án dài lùi một bậc).
+- Đồng hồ là vòng tròn đếm ngược (`Timer`, `.timer`), số giây ở giữa, 5 giây cuối chuyển đỏ.
 - Màn chiếu luôn chế độ sáng (laptop để tối thì máy chiếu vẫn sáng). Trên 7 phần chơi thì tiến trình là một dòng "Phần x/y" kèm thanh, thay cho Stepper.
-- Đường đua các team tự vẽ (`.race`), mỗi thanh theo màu của team. Phòng chờ: thẻ team tự chia cột (tối thiểu 240px), lớp trên 12 bạn dùng avatar nhỏ hơn.
-- Kiểm tra ở 1280×720, 1366×640 và 1920×1080. Dưới 820px chiều cao bỏ thanh tiến trình; dưới 760px dùng chế độ gọn (tiêu đề nhỏ một bậc, thẻ đáp án `dense`). Mã QR, bục và hình minh hoạ co theo chiều cao.
-- Trang chủ và trang tạo phòng chia hai cột từ 1024px. Màn học viên trên laptop giữ một cột giữa màn hình. Bố cục điện thoại giữ nguyên.
+- Đường đua các team tự vẽ (`.race`), mỗi thanh theo màu của team. Phòng chờ: thẻ team tự chia cột (tối thiểu 240px, màn thấp 210px), avatar xếp thẳng mép trên; lớp trên 12 bạn hoặc màn thấp dùng avatar nhỏ hơn.
+- Kiểm tra ở 1280×600 (laptop phóng to 150%), 1280×720, 1366×640, 1920×1080. Dưới 820px chiều cao bỏ thanh tiến trình; dưới 760px chế độ gọn (tiêu đề nhỏ một bậc, thẻ đáp án `dense`); dưới 700px đáp án xếp một hàng, khi công bố bỏ hình minh hoạ, phòng chờ và bục thu nhỏ. Mã QR, bục, đồng hồ và hình minh hoạ co theo chiều cao.
+- Trang chủ và trang tạo phòng chia hai cột từ 1024px; trang tạo phòng cao ít nhất bằng cửa sổ để thanh hành động nằm sát đáy (`page-fill`). Màn học viên trên laptop giữ một cột giữa màn hình. Bố cục điện thoại giữ nguyên; thanh hành động của form vào phòng cũng tràn hai mép (`bleed-bar`).
 
 ## Kiểm tra trước khi commit
 

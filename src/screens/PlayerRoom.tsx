@@ -115,7 +115,9 @@ export function PlayerRoom({ pin }: { pin: string }) {
   const team = playing ? view.teams.find((t) => t.id === view.me.teamId) ?? null : null;
 
   return (
-    <Stack gap="none">
+    // Khối thường, không phải Stack: Container canh giữa bằng margin auto, trong flex nó co theo nội dung và một tên dài
+    // trong danh sách có thể đẩy cả khung rộng hơn màn hình điện thoại.
+    <>
       <TopNavigation
         type="compact-alt"
         sticky
@@ -152,7 +154,7 @@ export function PlayerRoom({ pin }: { pin: string }) {
           {playing && <PlayerPhase view={view} leaving={leaving} onLeave={() => void leave()} />}
         </Stack>
       </Container>
-    </Stack>
+    </>
   );
 }
 
@@ -279,7 +281,7 @@ function JoinForm({ peek, onJoined }: { peek: RoomPeek; onJoined: (player: Store
           Bạn sẽ được xếp vào một trong các team một cách tự động.
         </Text>
       )}
-      <ActionBar primaryAction={{ label: busy ? "Đang vào phòng…" : "Vào phòng", type: "submit", disabled: busy }} />
+      <ActionBar className="bleed-bar" primaryAction={{ label: busy ? "Đang vào phòng…" : "Vào phòng", type: "submit", disabled: busy }} />
     </Form>
   );
 }
@@ -452,15 +454,21 @@ function Intro({ view }: { view: PlayerView }) {
   );
 }
 
-function QuestionHeader({ view }: { view: PlayerView }) {
+function QuestionHeader({ view, timer }: { view: PlayerView; timer?: ReactNode }) {
   const step = view.step!;
   const game = GAMES[step.game];
   return (
     <Stack gap="md">
       <GameBadge game={game.id}>{`${game.title} · Câu ${step.number}/${step.total}`}</GameBadge>
-      <Heading level={2} textStyle="Heading/3">
-        {step.prompt}
-      </Heading>
+      {/* Đồng hồ vòng tròn đứng cạnh câu hỏi: đọc câu hỏi là thấy ngay thời gian còn lại. */}
+      <Stack direction="row" gap="sm" align="start">
+        <Stack width="fill">
+          <Heading level={2} textStyle="Heading/3">
+            {step.prompt}
+          </Heading>
+        </Stack>
+        {timer}
+      </Stack>
       {step.visual && <QuestionVisual visual={step.visual} />}
     </Stack>
   );
@@ -489,7 +497,10 @@ function Question({ view }: { view: PlayerView }) {
   if (view.me.isAuthor) {
     return (
       <Stack gap="lg">
-        <Timer startsAt={view.startsAt} endsAt={view.endsAt} />
+        <Stack direction="row" gap="sm" align="center" justify="between">
+          <GameBadge game={step.game}>{`${GAMES[step.game].title} · Câu ${step.number}/${step.total}`}</GameBadge>
+          <Timer startsAt={view.startsAt} endsAt={view.endsAt} />
+        </Stack>
         <Card theme="subtle" color="violet">
           <Stack gap="sm" align="center" paddingY="md">
             <HeroArt main="🤫" bits={["👀", "❓", "💬", "🕵️"]} size="md" />
@@ -508,8 +519,7 @@ function Question({ view }: { view: PlayerView }) {
 
   return (
     <Stack gap="lg">
-      <Timer startsAt={view.startsAt} endsAt={view.endsAt} />
-      <QuestionHeader view={view} />
+      <QuestionHeader view={view} timer={<Timer startsAt={view.startsAt} endsAt={view.endsAt} />} />
       {step.range ? (
         <EstimateInput step={step} chosen={chosen} timeUp={timeUp} onSubmit={(value) => void choose(value)} />
       ) : (
@@ -600,11 +610,14 @@ function Challenge({ view }: { view: PlayerView }) {
 
   return (
     <Stack gap="lg">
-      <Stack direction="row" gap="sm" align="center">
-        <GameMark game={game.id} size="sm" />
-        <Heading level={2} textStyle="Heading/3">
-          {game.title}
-        </Heading>
+      <Stack direction="row" gap="sm" align="center" justify="between">
+        <Stack direction="row" gap="sm" align="center">
+          <GameMark game={game.id} size="sm" />
+          <Heading level={2} textStyle="Heading/3">
+            {game.title}
+          </Heading>
+        </Stack>
+        {!waiting && <Timer startsAt={view.startsAt} endsAt={view.endsAt} />}
       </Stack>
       {waiting ? (
         <Stack gap="md" align="center" paddingY="2xl">
@@ -618,7 +631,6 @@ function Challenge({ view }: { view: PlayerView }) {
         </Stack>
       ) : (
         <>
-          <Timer startsAt={view.startsAt} endsAt={view.endsAt} />
           {over && (
             <InlineMessage theme="info" title="Hết giờ!">
               {`Bạn được ${points(view.me.challenge?.score ?? 0)} ở lượt này.`}

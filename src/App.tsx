@@ -34,6 +34,7 @@ export function App() {
   return (
     <ZenProvider
       key={`${typography}-${theme}`}
+      className="app"
       theme={theme}
       locale="vi"
       typography={typography}
