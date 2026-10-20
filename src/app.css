@@ -1,0 +1,67 @@
+/* Chỉ các phần riêng của trò chơi; còn lại dùng component Zen DS. Chỉ dùng token Zen. */
+
+/* Mắt thần màu sắc: lưới ô vuông, màu từng ô do trò chơi sinh ra. */
+.color-grid {
+  display: grid;
+  gap: var(--zen-spacing-gap-xsmall);
+  aspect-ratio: 1;
+  width: 100%;
+  touch-action: manipulation;
+}
+
+.color-tile {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  border-radius: var(--zen-corner-radius-base);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--zen-motion-duration-xfast) var(--zen-motion-ease-standard);
+}
+
+.color-tile:active {
+  transform: scale(0.94);
+}
+
+.color-tile:focus-visible {
+  outline: 3px solid var(--zen-color-focus-accent-solid);
+  outline-offset: 2px;
+}
+
+.color-tile:disabled {
+  cursor: default;
+}
+
+.color-tile[data-missed="true"] {
+  animation: tile-shake var(--zen-motion-duration-slow) var(--zen-motion-ease-standard);
+}
+
+@keyframes tile-shake {
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Pixel Perfect: khung vuông để chạm. */
+.play-area {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: crosshair;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .color-tile {
+    transition: none;
+  }
+  .color-tile:active {
+    transform: none;
+  }
+  .color-tile[data-missed="true"] {
+    animation: none;
+  }
+}

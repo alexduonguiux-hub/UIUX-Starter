@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.zen-audit/
+*.log
+.DS_Store
+.env
+ci-token.npmrc

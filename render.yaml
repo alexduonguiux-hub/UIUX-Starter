@@ -1,0 +1,15 @@
+# Render Blueprint: New → Blueprint → chọn repo này.
+services:
+  - type: web
+    name: uiux-warmup
+    runtime: node
+    plan: free
+    # Token Zen DS chỉ dùng lúc build, ghi vào ~/.npmrc của máy build (không vào repo).
+    buildCommand: echo "//npm.dizai.studio/:_authToken=${ZEN_DS_NPM_TOKEN}" >> ~/.npmrc && npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ZEN_DS_NPM_TOKEN
+        sync: false
