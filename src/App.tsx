@@ -31,7 +31,6 @@ export function App() {
     <ZenProvider
       key={phone ? "phone" : "desktop"}
       theme="system"
-      componentTheme="brand-s1"
       locale="vi"
       typography={phone ? "mobile" : "dashboard"}
       density={phone ? "comfortable" : "compact"}

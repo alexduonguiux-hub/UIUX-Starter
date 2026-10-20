@@ -1,6 +1,7 @@
 import { Badge, Box, Card, DockIcon, Grid, Image, ProgressBar, Stack, Text, type CardColor, type DockIconTheme, type IconName } from "@zen-ds/react";
 import type { StepView } from "../lib/types";
 import { svgUrl } from "../lib/format";
+import { EmojiArt } from "./Fun";
 
 /** Mỗi đáp án có hình, chữ cái và màu riêng, để không chỉ dựa vào màu sắc. */
 const MARKS: Array<{ icon: IconName; theme: DockIconTheme; card: CardColor; letter: string }> = [
@@ -29,6 +30,8 @@ export function Answers({ step, state, chosen = null, onChoose, large = false }:
   const total = counts ? counts.reduce((sum, count) => sum + count, 0) : 0;
   const isPoll = step.game === "poll";
   const pictures = step.images ?? null;
+  const art = step.optionArt ?? null;
+  const bigArt = Boolean(art) && step.game === "poll";
   const columns = pictures || options.length === 2 ? 2 : { mobile: 1, tablet: 2, desktop: 2 };
 
   return (
@@ -56,8 +59,14 @@ export function Answers({ step, state, chosen = null, onChoose, large = false }:
                   <Image src={svgUrl(pictures[index].svg)} alt={pictures[index].alt} ratio={4 / 3} fit="contain" radius="lg" loading="eager" />
                 </Box>
               )}
+              {bigArt && art?.[index] && (
+                <Stack align="center" paddingY={large ? "md" : "xs"}>
+                  <EmojiArt size={large ? "xl" : "lg"}>{art[index]}</EmojiArt>
+                </Stack>
+              )}
               <Stack direction="row" gap={pictures && !large ? "xs" : "sm"} align="center">
                 <DockIcon icon={mark.icon} theme={mark.theme} size={large ? "md" : pictures ? "xs" : "sm"} label={`Đáp án ${mark.letter}`} />
+                {!bigArt && art?.[index] && <EmojiArt size="md">{art[index]}</EmojiArt>}
                 <Text textStyle={large ? "Heading/4" : pictures ? "Body/Base/Medium" : "Body/Extra/Medium"} width="fill">
                   {label}
                 </Text>

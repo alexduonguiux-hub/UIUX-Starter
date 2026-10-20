@@ -17,21 +17,30 @@ import {
   Text,
   type CardColor,
 } from "@zen-ds/react";
-import { GAMES, GAME_ORDER, MAX_TEAMS, MIN_TEAMS, PACKS, estimateSeconds, type GameCounts, type GameId } from "../../shared/games.js";
-import { AB, POLLS, QUIZ } from "../../shared/content.js";
+import { GAMES, GAME_ORDER, MAX_TEAMS, MIN_TEAMS, PACKS, estimateSeconds, type GameCounts, type GameId, type PackId } from "../../shared/games.js";
+import { AB, POLLS, QUIZ, REBUS } from "../../shared/content.js";
+import { EmojiArt } from "../components/Fun";
+import { summaryText } from "../components/common";
 import { minutesLabel } from "../lib/format";
 import { navigate } from "../lib/router";
 import { request } from "../lib/socket";
 import { hostKeyFor, save } from "../lib/storage";
 
-type Pack = "quick" | "full" | "custom";
+type Pack = PackId | "custom";
 
-const LIMITS: GameCounts = { poll: POLLS.length, quiz: QUIZ.length, ab: AB.length, color: 1, center: 1 };
+const LIMITS: GameCounts = { poll: POLLS.length, whois: 10, rebus: REBUS.length, quiz: QUIZ.length, ab: AB.length, reaction: 1, color: 1, center: 1 };
+
+const SET_TITLES = { warmup: "Trò làm quen (không chuyên môn)", uiux: "Trò chuyên môn UI/UX" } as const;
 
 const packSummary = (games: GameCounts) =>
   GAME_ORDER.filter((id) => games[id] > 0)
     .map((id) => (GAMES[id].kind === "challenge" ? `${GAMES[id].emoji} ${GAMES[id].title}` : `${GAMES[id].emoji} ${GAMES[id].title} (${games[id]} câu)`))
     .join(" · ");
+
+const packArt = (games: GameCounts) =>
+  GAME_ORDER.filter((id) => games[id] > 0)
+    .map((id) => GAMES[id].emoji)
+    .join(" ");
 
 const countOptions = (id: GameId) => {
   if (GAMES[id].kind === "challenge") return [{ label: "Không chơi", value: "0" }, { label: `Có, ${GAMES[id].seconds} giây`, value: "1" }];
@@ -68,10 +77,11 @@ export function HostSetup() {
     navigate(`/host/${result.pin}`);
   };
 
-  const packCards: Array<{ id: Pack; title: string; time: string; caption: string; color: CardColor }> = [
-    { id: "quick", title: `⚡ ${PACKS.quick.title}`, time: minutesLabel(estimateSeconds(PACKS.quick.games)), caption: packSummary(PACKS.quick.games), color: "yellow" },
-    { id: "full", title: `🎉 ${PACKS.full.title}`, time: minutesLabel(estimateSeconds(PACKS.full.games)), caption: packSummary(PACKS.full.games), color: "violet" },
-    { id: "custom", title: "🛠️ Tự chọn", time: minutesLabel(estimateSeconds(custom)), caption: "Chọn từng trò chơi và số câu hỏi.", color: "cyan" },
+  const packCards: Array<{ id: Pack; title: string; tag: string; time: string; caption: string; color: CardColor; art: string }> = [
+    { id: "quick", title: PACKS.quick.title, tag: "Buổi đầu", time: minutesLabel(estimateSeconds(PACKS.quick.games)), caption: packSummary(PACKS.quick.games), color: "purple", art: packArt(PACKS.quick.games) },
+    { id: "full", title: PACKS.full.title, tag: "Buổi đầu", time: minutesLabel(estimateSeconds(PACKS.full.games)), caption: packSummary(PACKS.full.games), color: "orange", art: packArt(PACKS.full.games) },
+    { id: "uiux", title: PACKS.uiux.title, tag: "Các buổi sau", time: minutesLabel(estimateSeconds(PACKS.uiux.games)), caption: packSummary(PACKS.uiux.games), color: "blue", art: packArt(PACKS.uiux.games) },
+    { id: "custom", title: "Tự chọn", tag: "Tuỳ ý", time: minutesLabel(estimateSeconds(custom)), caption: "Chọn từng trò chơi và số câu hỏi.", color: "cyan", art: "🛠️" },
   ];
 
   return (
@@ -126,17 +136,23 @@ export function HostSetup() {
           <Heading level={2} textStyle="Heading/4">
             Trò chơi
           </Heading>
-          <Grid columns={{ mobile: 1, tablet: 3, desktop: 3 }} gap="md">
+          <Grid columns={{ mobile: 1, tablet: 2, desktop: 2 }} gap="md">
             {packCards.map((card) => (
               <Card key={card.id} theme="subtle" color={card.color} spacing="sm" selected={pack === card.id} onClick={() => setPack(card.id)} aria-label={`${card.title}, ${card.time}`}>
                 <Stack gap="xs">
+                  <EmojiArt size="md">{card.art}</EmojiArt>
                   <Stack direction="row" gap="xs" align="center" justify="between" wrap>
                     <Heading level={3} textStyle="Heading/Subheading">
                       {card.title}
                     </Heading>
-                    <Badge theme="neutral" background="subtle" size="sm" leadingIcon={false}>
-                      {card.time}
-                    </Badge>
+                    <Stack direction="row" gap="2xs">
+                      <Badge theme="neutral" background="subtle" size="sm" leadingIcon={false}>
+                        {card.tag}
+                      </Badge>
+                      <Badge theme="neutral" background="subtle" size="sm" leadingIcon={false}>
+                        {card.time}
+                      </Badge>
+                    </Stack>
                   </Stack>
                   <Text textStyle="Body/Small/Regular" tone="base">
                     {card.caption}
@@ -148,21 +164,36 @@ export function HostSetup() {
 
           {pack === "custom" && (
             <Box surface="surface" radius="2xl" padding="xl">
-              <Grid columns={{ mobile: 1, desktop: 2 }} gap="lg">
-                {GAME_ORDER.map((id) => (
-                  <SelectField
-                    key={id}
-                    label={`${GAMES[id].emoji} ${GAMES[id].title}`}
-                    helpText={GAMES[id].short}
-                    options={countOptions(id)}
-                    value={String(custom[id])}
-                    onValueChange={(value) => setCustom((current) => ({ ...current, [id]: Number(value) }))}
-                  />
+              <Stack gap="xl">
+                {(["warmup", "uiux"] as const).map((set) => (
+                  <Stack key={set} gap="md">
+                    <Heading level={3} textStyle="Heading/Subheading">
+                      {SET_TITLES[set]}
+                    </Heading>
+                    <Grid columns={{ mobile: 1, desktop: 2 }} gap="lg">
+                      {GAME_ORDER.filter((id) => GAMES[id].set === set).map((id) => (
+                        <SelectField
+                          key={id}
+                          label={`${GAMES[id].emoji} ${GAMES[id].title}`}
+                          helpText={GAMES[id].short}
+                          options={countOptions(id)}
+                          value={String(custom[id])}
+                          onValueChange={(value) => setCustom((current) => ({ ...current, [id]: Number(value) }))}
+                        />
+                      ))}
+                    </Grid>
+                  </Stack>
                 ))}
-              </Grid>
+              </Stack>
             </Box>
           )}
         </Stack>
+
+        {games.whois > 0 && (
+          <InlineMessage theme="info" title="Về trò “Ai là ai?”">
+            Khi vào phòng, mỗi học viên viết một điều thú vị về mình. Trò này dùng các câu đó, nên hãy nhắc cả lớp viết trước khi bấm Bắt đầu.
+          </InlineMessage>
+        )}
 
         {error && (
           <InlineMessage theme="negative" title="Chưa tạo được phòng">
@@ -172,7 +203,7 @@ export function HostSetup() {
 
         <ActionBar
           direction="horizontal"
-          summary={rounds > 0 ? `${minutesLabel(estimateSeconds(games))} · ${sections} phần · ${rounds} lượt chơi` : "Chọn ít nhất một trò chơi"}
+          summary={summaryText(rounds > 0 ? `${minutesLabel(estimateSeconds(games))} · ${sections} phần · ${rounds} lượt chơi` : "Chọn ít nhất một trò chơi")}
           primaryAction={{ label: busy ? "Đang tạo phòng…" : "Tạo phòng", onClick: () => void create(), disabled: busy || rounds === 0 }}
         />
       </Stack>

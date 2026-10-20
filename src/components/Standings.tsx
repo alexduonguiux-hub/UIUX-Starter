@@ -102,7 +102,7 @@ export function PlayerStandings({
           return (
             <ListItem
               key={player.id}
-              leading={<PlayerAvatar name={player.name} team={team} />}
+              leading={<PlayerAvatar name={player.name} avatar={player.avatar} team={team} />}
               title={`${medal(player.rank, scoreOf(player)) ?? `${player.rank}.`} ${player.name}`}
               caption={notes.length ? notes.join(" · ") : undefined}
               value={formatPoints(scoreOf(player))}

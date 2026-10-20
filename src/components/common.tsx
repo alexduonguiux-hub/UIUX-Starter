@@ -1,8 +1,9 @@
-import { Avatar, Badge, DockIcon, Image, ProgressBar, Stack, Text, type DockIconProps } from "@zen-ds/react";
+import { Avatar, Badge, Box, DockIcon, Image, ProgressBar, Stack, Text, type DockIconProps } from "@zen-ds/react";
 import { GAMES, type GameId, type TeamPreset } from "../../shared/games.js";
-import type { QuizVisual } from "../../shared/content.js";
 import { useServerNow } from "../lib/clock";
 import { initials, secondsLeft, svgUrl } from "../lib/format";
+import type { StepVisual } from "../lib/types";
+import { EmojiArt } from "./Fun";
 
 /** Biểu tượng của một trò chơi (emoji trên ô tròn). */
 export function GameMark({ game, size = "md" }: { game: GameId; size?: DockIconProps["size"] }) {
@@ -32,11 +33,11 @@ export function TeamBadge({ team, size = "md" }: { team: TeamPreset; size?: "sm"
   );
 }
 
-/** Ảnh đại diện chữ cái đầu, tô theo màu team. Tên hiện ngay bên cạnh nên avatar là trang trí. */
-export function PlayerAvatar({ name, team, size = "md" }: { name: string; team?: TeamPreset | null; size?: "sm" | "md" | "lg" | "xl" | "2xl" }) {
+/** Ảnh đại diện: emoji học viên chọn (hoặc chữ cái đầu), nền theo màu team. Tên hiện ngay bên cạnh nên avatar là trang trí. */
+export function PlayerAvatar({ name, avatar, team, size = "md" }: { name: string; avatar?: string | null; team?: TeamPreset | null; size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" }) {
   return (
     <Avatar size={size} theme={team?.theme ?? "indigo"} background="subtle" alt="">
-      {initials(name)}
+      {avatar ? <span className="avatar-emoji">{avatar}</span> : initials(name)}
     </Avatar>
   );
 }
@@ -62,14 +63,46 @@ export function Timer({ startsAt, endsAt, size = "md" }: { startsAt: number | nu
   );
 }
 
-/** Hình minh hoạ của câu hỏi: ô màu hoặc hình vẽ. */
-export function QuestionVisual({ visual }: { visual: QuizVisual }) {
+/** Hình minh hoạ của câu hỏi: ô màu, hình vẽ, chuỗi emoji hoặc trích dẫn. */
+export function QuestionVisual({ visual, large = false }: { visual: StepVisual; large?: boolean }) {
+  if (visual.type === "emoji") {
+    return (
+      <Box surface="surface" radius="2xl" padding={large ? "2xl" : "xl"} width="fill">
+        <Stack gap="md" align="center">
+          <Badge theme="orange" background="subtle" leadingIcon={false}>
+            {visual.caption}
+          </Badge>
+          <EmojiArt size={large ? "xl" : "lg"} float label={`Câu đố bằng emoji: ${visual.text}`}>
+            {visual.text}
+          </EmojiArt>
+        </Stack>
+      </Box>
+    );
+  }
+  if (visual.type === "quote") {
+    return (
+      <Box surface="surface" radius="2xl" padding={large ? "2xl" : "xl"} width="fill">
+        <Stack gap="sm">
+          <Text as="span" textStyle="Display/1" tone="accent-base" aria-hidden="true">
+            “
+          </Text>
+          <Text textStyle={large ? "Display/4" : "Heading/3"}>{visual.text}</Text>
+          <Text textStyle={large ? "Heading/4" : "Body/Extra/Medium"} tone="base" align="end">
+            — Ai đây nhỉ? 🤔
+          </Text>
+        </Stack>
+      </Box>
+    );
+  }
   if (visual.type === "swatch") {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180"><rect width="320" height="180" rx="16" fill="${visual.color}"/></svg>`;
     return <Image src={svgUrl(svg)} alt="Ô màu cần đoán mã" ratio={16 / 9} fit="contain" radius="xl" loading="eager" />;
   }
   return <Image src={svgUrl(visual.svg)} alt={visual.alt} ratio={16 / 9} fit="contain" radius="xl" loading="eager" />;
 }
+
+/** Dòng tóm tắt của ActionBar trong kiểu chữ Zen (chuỗi rỗng thì không hiện). */
+export const summaryText = (text: string | undefined) => (text ? <Text as="span" textStyle="Body/Base/Regular">{text}</Text> : undefined);
 
 /** Vị trí 1‑3 có huy chương (chỉ khi đã có điểm, để 0 điểm không ai được huy chương). */
 export const medal = (rank: number, score = 1) => (score <= 0 ? null : rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null);

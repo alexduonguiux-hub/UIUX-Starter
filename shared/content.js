@@ -253,17 +253,44 @@ export const AB = [
 ];
 
 /**
- * Đoán số đông (This or That): ai chọn giống số đông thì được điểm. Dùng để làm quen nhau.
- * @type {Array<{ id: string, prompt: string, options: [string, string] }>}
+ * Đoán số đông (This or That): ai chọn giống số đông thì được điểm. Chủ đề đời thường để cả lớp làm quen nhau.
+ * Mỗi lựa chọn có một emoji làm hình minh hoạ.
+ * @type {Array<{ id: string, prompt: string, options: [{ emoji: string, label: string }, { emoji: string, label: string }] }>}
  */
 export const POLLS = [
-  { id: "mode", prompt: "Bạn thích chế độ nào?", options: ["🌙 Dark mode", "☀️ Light mode"] },
-  { id: "drink", prompt: "Đồ uống khi làm việc?", options: ["☕ Cà phê", "🧋 Trà sữa"] },
-  { id: "time", prompt: "Bạn làm việc hiệu quả nhất lúc nào?", options: ["🌅 Sáng sớm", "🦉 Đêm khuya"] },
-  { id: "corner", prompt: "Bạn chọn kiểu góc nào?", options: ["⚪ Bo tròn", "⬛ Góc vuông"] },
-  { id: "os", prompt: "Máy tính của bạn chạy gì?", options: ["🍎 macOS", "🪟 Windows"] },
-  { id: "style", prompt: "Phong cách bạn thích?", options: ["🤍 Tối giản", "🌈 Nhiều màu sắc"] },
-  { id: "sketch", prompt: "Khi bắt đầu một ý tưởng, bạn…", options: ["✏️ Vẽ tay ra giấy", "💻 Mở Figma luôn"] },
-  { id: "learn", prompt: "Bạn học tốt nhất qua…", options: ["🎬 Video", "📚 Đọc tài liệu"] },
-  { id: "team", prompt: "Bạn thích làm việc thế nào?", options: ["👥 Theo nhóm", "🎧 Một mình"] },
+  { id: "trip", prompt: "Kỳ nghỉ mơ ước của bạn?", options: [{ emoji: "🏖️", label: "Ra biển" }, { emoji: "⛰️", label: "Lên núi" }] },
+  { id: "drink", prompt: "Đồ uống ruột của bạn?", options: [{ emoji: "☕", label: "Cà phê" }, { emoji: "🧋", label: "Trà sữa" }] },
+  { id: "time", prompt: "Bạn là người…", options: [{ emoji: "🐓", label: "Dậy sớm" }, { emoji: "🦉", label: "Cú đêm" }] },
+  { id: "pet", prompt: "Team thú cưng nào?", options: [{ emoji: "🐶", label: "Team chó" }, { emoji: "🐱", label: "Team mèo" }] },
+  { id: "food", prompt: "Bữa sáng chọn món nào?", options: [{ emoji: "🍜", label: "Phở" }, { emoji: "🥖", label: "Bánh mì" }] },
+  { id: "weekend", prompt: "Cuối tuần lý tưởng là…", options: [{ emoji: "🎒", label: "Đi chơi" }, { emoji: "🛌", label: "Ngủ nướng" }] },
+  { id: "taste", prompt: "Khẩu vị của bạn?", options: [{ emoji: "🍰", label: "Ăn ngọt" }, { emoji: "🌶️", label: "Ăn cay" }] },
+  { id: "season", prompt: "Mùa yêu thích?", options: [{ emoji: "☀️", label: "Mùa hè" }, { emoji: "❄️", label: "Mùa đông" }] },
+  { id: "chat", prompt: "Liên lạc với bạn bè bằng…", options: [{ emoji: "💬", label: "Nhắn tin" }, { emoji: "📞", label: "Gọi điện" }] },
+  { id: "movie", prompt: "Tối nay xem phim gì?", options: [{ emoji: "💥", label: "Hành động" }, { emoji: "😂", label: "Hài hước" }] },
+  { id: "music", prompt: "Đi hát karaoke, bạn là…", options: [{ emoji: "🎤", label: "Ca sĩ chính" }, { emoji: "👏", label: "Khán giả" }] },
+  { id: "mode", prompt: "Điện thoại của bạn để…", options: [{ emoji: "🌙", label: "Dark mode" }, { emoji: "☀️", label: "Light mode" }] },
+];
+
+/**
+ * Đuổi hình bắt chữ: nhìn emoji, đoán thành ngữ, tên phim hoặc món ăn.
+ * @type {Array<{ id: string, category: string, emoji: string, options: string[], answer: number, explain?: string }>}
+ */
+export const REBUS = [
+  { id: "ech", category: "Thành ngữ", emoji: "🐸🕳️", options: ["Ếch ngồi đáy giếng", "Cá chậu chim lồng", "Nước đổ đầu vịt", "Mèo mù vớ cá rán"], answer: 0, explain: "Ếch ngồi đáy giếng: hiểu biết hạn hẹp mà tưởng mình biết nhiều." },
+  { id: "dan", category: "Thành ngữ", emoji: "🎸👂🐃", options: ["Cưỡi ngựa xem hoa", "Đàn gảy tai trâu", "Vẽ rắn thêm chân", "Nước chảy đá mòn"], answer: 1, explain: "Đàn gảy tai trâu: nói điều hay với người không hiểu, không muốn nghe." },
+  { id: "vit", category: "Thành ngữ", emoji: "💧🦆", options: ["Nước chảy đá mòn", "Mèo mù vớ cá rán", "Nước đổ đầu vịt", "Cá lớn nuốt cá bé"], answer: 2, explain: "Nước đổ đầu vịt: khuyên bảo mấy cũng không vào." },
+  { id: "ngua", category: "Thành ngữ", emoji: "🏇🌸", options: ["Đàn gảy tai trâu", "Cưỡi ngựa xem hoa", "Ếch ngồi đáy giếng", "Chậm mà chắc"], answer: 1, explain: "Cưỡi ngựa xem hoa: xem qua loa, không kỹ." },
+  { id: "ran", category: "Thành ngữ", emoji: "✏️🐍🦶", options: ["Vẽ rắn thêm chân", "Rắn mất đầu", "Nước đổ đầu vịt", "Cá chậu chim lồng"], answer: 0, explain: "Vẽ rắn thêm chân: làm thừa, khiến mọi thứ tệ hơn." },
+  { id: "meo", category: "Thành ngữ", emoji: "🐱🙈🐟", options: ["Cá lớn nuốt cá bé", "Mèo mù vớ cá rán", "Chó cắn áo rách", "Ếch ngồi đáy giếng"], answer: 1, explain: "Mèo mù vớ cá rán: gặp may một cách tình cờ." },
+  { id: "da", category: "Thành ngữ", emoji: "💧💧💧🪨", options: ["Nước chảy đá mòn", "Nước đổ đầu vịt", "Cưỡi ngựa xem hoa", "Vẽ rắn thêm chân"], answer: 0, explain: "Nước chảy đá mòn: kiên trì thì việc khó cũng thành." },
+  { id: "ca", category: "Thành ngữ", emoji: "🦈🐟", options: ["Cá chậu chim lồng", "Cá lớn nuốt cá bé", "Mèo mù vớ cá rán", "Nước đổ đầu vịt"], answer: 1, explain: "Cá lớn nuốt cá bé: kẻ mạnh lấn át kẻ yếu." },
+  { id: "lion", category: "Phim", emoji: "🦁👑", options: ["Vua sư tử", "Madagascar", "Zootopia", "Kung Fu Panda"], answer: 0 },
+  { id: "frozen", category: "Phim", emoji: "❄️👸⛄", options: ["Lọ Lem", "Nữ hoàng băng giá", "Người đẹp và quái vật", "Moana"], answer: 1 },
+  { id: "titanic", category: "Phim", emoji: "🚢🧊💔", options: ["Cướp biển vùng Caribbean", "Titanic", "Đi tìm Nemo", "Moana"], answer: 1 },
+  { id: "panda", category: "Phim", emoji: "🐼🥋", options: ["Zootopia", "Vua sư tử", "Kung Fu Panda", "Madagascar"], answer: 2 },
+  { id: "spider", category: "Phim", emoji: "🕷️🧑", options: ["Người Dơi", "Người Sắt", "Người Nhện", "Siêu Nhân"], answer: 2 },
+  { id: "nemo", category: "Phim", emoji: "🔎🐠", options: ["Đi tìm Nemo", "Moana", "Nàng tiên cá", "Titanic"], answer: 0 },
+  { id: "pho", category: "Món ăn", emoji: "🍜🐄", options: ["Bún chả", "Phở bò", "Hủ tiếu", "Mì Quảng"], answer: 1 },
+  { id: "comga", category: "Món ăn", emoji: "🍚🐔", options: ["Cơm tấm", "Cơm gà", "Xôi gà", "Cháo gà"], answer: 1 },
 ];

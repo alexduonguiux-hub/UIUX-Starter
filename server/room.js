@@ -1,11 +1,13 @@
 // Một phòng chơi: người chơi, team, các bước của buổi chơi, điểm số và trạng thái gửi cho từng màn hình.
 import { randomBytes, randomUUID } from "node:crypto";
-import { AB, POLLS, QUIZ } from "../shared/content.js";
+import { AB, POLLS, QUIZ, REBUS } from "../shared/content.js";
 import {
+  AVATARS,
   CENTER_ROUNDS,
   CHALLENGE_LEAD_MS,
   COLOR_MISS_LOCK_MS,
   COLOR_POINTS,
+  FACT_MAX,
   GAMES,
   GAME_ORDER,
   MAX_TEAMS,
@@ -13,16 +15,19 @@ import {
   NAME_MAX,
   PACKS,
   POLL_POINTS,
+  REACTION_ROUNDS,
   TEAM_PRESETS,
+  WHOIS_AUTHOR_POINTS,
   answerPoints,
   centerPoints,
   centerTargets,
   colorLevel,
+  reactionPoints,
   shuffle,
 } from "../shared/games.js";
 
 /** Số câu tối đa mỗi trò hỏi đáp (theo nội dung đang có). */
-export const LIMITS = { poll: POLLS.length, quiz: QUIZ.length, ab: AB.length, color: 1, center: 1 };
+export const LIMITS = { poll: POLLS.length, whois: 10, rebus: REBUS.length, quiz: QUIZ.length, ab: AB.length, reaction: 1, color: 1, center: 1 };
 /** Thời gian chờ thêm cho câu trả lời đến muộn do mạng. */
 const GRACE_MS = 600;
 const TOP_FOR_PLAYERS = 5;
@@ -35,7 +40,7 @@ const clampInt = (value, min, max, fallback) => {
 
 /** Kiểm tra và chuẩn hoá cài đặt phòng gửi lên từ trình duyệt. */
 export function normalizeSettings(input = {}) {
-  const pack = ["quick", "full", "custom"].includes(input.pack) ? input.pack : "quick";
+  const pack = ["quick", "full", "uiux", "custom"].includes(input.pack) ? input.pack : "quick";
   const source = pack === "custom" ? input.games ?? {} : PACKS[pack].games;
   const games = {};
   for (const id of GAME_ORDER) games[id] = clampInt(source[id], 0, LIMITS[id], 0);
@@ -57,6 +62,15 @@ export function cleanName(name) {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, NAME_MAX);
+}
+
+/** Chuẩn hoá "điều thú vị về bạn": một dòng, tối đa FACT_MAX ký tự. */
+export function cleanFact(fact) {
+  return String(fact ?? "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, FACT_MAX);
 }
 
 /** Xếp hạng có đồng hạng: cùng điểm thì cùng hạng. */
@@ -130,7 +144,7 @@ export class Room {
   }
 
   /** Học viên vào phòng. Trả về người chơi, hoặc { error }. */
-  join({ name, teamId }) {
+  join({ name, teamId, avatar, fact }) {
     const clean = cleanName(name);
     if (!clean) return { error: "Hãy nhập tên của bạn." };
     if (this.players.size >= 300) return { error: "Phòng đã đủ người." };
@@ -142,6 +156,8 @@ export class Room {
     const player = {
       id: randomUUID(),
       name: this.uniqueName(clean),
+      avatar: AVATARS.includes(avatar) ? avatar : AVATARS[Math.floor(this.random() * AVATARS.length)],
+      fact: cleanFact(fact),
       teamId: team,
       score: 0,
       streak: 0,
@@ -173,6 +189,22 @@ export class Room {
     return { ok: true };
   }
 
+  /** Học viên đổi avatar hoặc "điều thú vị" (điều thú vị chỉ đổi được trước khi bắt đầu). */
+  setProfile(playerId, { avatar, fact } = {}) {
+    const player = this.players.get(playerId);
+    if (!player) return { error: "Không tìm thấy bạn trong phòng." };
+    if (avatar !== undefined) {
+      if (!AVATARS.includes(avatar)) return { error: "Avatar không hợp lệ." };
+      player.avatar = avatar;
+    }
+    if (fact !== undefined) {
+      if (this.phase !== "lobby") return { error: "Trò chơi đã bắt đầu, không đổi được nữa." };
+      player.fact = cleanFact(fact);
+    }
+    this.touch();
+    return { ok: true };
+  }
+
   remove(playerId) {
     if (!this.players.delete(playerId)) return false;
     this.current?.answers?.delete(playerId);
@@ -200,24 +232,50 @@ export class Room {
     for (const game of GAME_ORDER) {
       const count = this.settings.games[game];
       if (!count) continue;
+      // "Ai là ai?" cần ít nhất 2 người và 1 điều thú vị; thiếu thì bỏ qua phần này.
+      if (game === "whois" && this.whoisItems(count).length === 0) continue;
       section += 1;
       steps.push({ id: `s${steps.length}`, kind: "intro", game, section });
       if (GAMES[game].kind === "challenge") {
         steps.push({ id: `s${steps.length}`, kind: "challenge", game, section, seed: randomBytes(6).toString("hex"), seconds: GAMES[game].seconds });
         continue;
       }
-      const pool = game === "quiz" ? QUIZ : game === "ab" ? AB : POLLS;
-      shuffle(pool, this.random)
-        .slice(0, count)
-        .forEach((item, index) => {
-          steps.push({ id: `s${steps.length}`, kind: "question", game, section, number: index + 1, total: count, seconds: GAMES[game].seconds, ...this.prepareItem(game, item) });
-        });
+      const items = game === "whois" ? this.whoisItems(count) : shuffle(game === "quiz" ? QUIZ : game === "ab" ? AB : game === "rebus" ? REBUS : POLLS, this.random).slice(0, count);
+      items.forEach((item, index) => {
+        steps.push({ id: `s${steps.length}`, kind: "question", game, section, number: index + 1, total: items.length, seconds: GAMES[game].seconds, ...this.prepareItem(game, item) });
+      });
     }
     return steps;
   }
 
+  /** Câu hỏi "Ai là ai?": mỗi câu là điều thú vị của một bạn, đáp án là tên bạn đó và tối đa 3 bạn khác. */
+  whoisItems(count) {
+    const everyone = [...this.players.values()];
+    if (everyone.length < 2) return [];
+    const authors = shuffle(everyone.filter((p) => p.fact), this.random).slice(0, count);
+    return authors.map((author) => {
+      const others = shuffle(everyone.filter((p) => p.id !== author.id), this.random).slice(0, 3);
+      const choices = shuffle([author, ...others], this.random);
+      return { author, choices };
+    });
+  }
+
   /** Câu hỏi: phần công khai (prompt, options) và phần bí mật (answer) cho tới lúc công bố. */
   prepareItem(game, item) {
+    if (game === "whois") {
+      return {
+        prompt: "Ai đã viết điều này?",
+        options: item.choices.map((p) => p.name),
+        optionArt: item.choices.map((p) => p.avatar),
+        answer: item.choices.findIndex((p) => p.id === item.author.id),
+        authorId: item.author.id,
+        visual: { type: "quote", text: item.author.fact },
+        explain: `Đó là ${item.author.name}! Hãy hỏi thêm bạn ấy trong giờ nghỉ nhé.`,
+      };
+    }
+    if (game === "rebus") {
+      return { prompt: `Đoán ${item.category.toLocaleLowerCase("vi")}`, options: item.options.slice(), answer: item.answer, explain: item.explain ?? null, visual: { type: "emoji", text: item.emoji, caption: item.category } };
+    }
     if (game === "ab") {
       const goodFirst = this.random() < 0.5;
       const good = { svg: item.good, alt: item.goodAlt };
@@ -231,7 +289,7 @@ export class Room {
         principle: item.principle,
       };
     }
-    if (game === "poll") return { prompt: item.prompt, options: item.options.slice(), answer: null };
+    if (game === "poll") return { prompt: item.prompt, options: item.options.map((o) => o.label), optionArt: item.options.map((o) => o.emoji), answer: null };
     return { prompt: item.prompt, options: item.options.slice(), answer: item.answer, explain: item.explain, visual: item.visual ?? null };
   }
 
@@ -335,6 +393,7 @@ export class Room {
     if (!player) return { error: "Không tìm thấy bạn trong phòng." };
     if (this.phase !== "question" || step?.id !== stepId) return { error: "Câu hỏi đã đóng." };
     if (this.current.answers.has(playerId)) return { error: "Bạn đã trả lời rồi." };
+    if (step.authorId === playerId) return { error: "Đây là điều bạn viết, chờ mọi người đoán nhé!" };
     if (!Number.isInteger(choice) || choice < 0 || choice >= step.options.length) return { error: "Lựa chọn không hợp lệ." };
     const now = this.now();
     if (now > this.current.endsAt + GRACE_MS) return { error: "Hết giờ rồi." };
@@ -352,11 +411,12 @@ export class Room {
   maybeFinishEarly() {
     const online = this.connectedPlayers();
     if (online.length === 0) return;
-    if (this.phase === "question" && online.every((p) => this.current.answers.has(p.id))) {
+    if (this.phase === "question" && online.every((p) => this.current.answers.has(p.id) || p.id === this.step.authorId)) {
       clearTimeout(this.timer);
       this.timer = setTimeout(() => this.reveal(), 400);
     }
-    if (this.phase === "challenge" && this.step.game === "center" && online.every((p) => (this.current.challenge.get(p.id)?.round ?? 0) >= CENTER_ROUNDS)) {
+    const rounds = this.step?.game === "center" ? CENTER_ROUNDS : this.step?.game === "reaction" ? REACTION_ROUNDS : null;
+    if (this.phase === "challenge" && rounds && online.every((p) => (this.current.challenge.get(p.id)?.round ?? 0) >= rounds)) {
       clearTimeout(this.timer);
       this.timer = setTimeout(() => this.endChallenge(), 1200);
     }
@@ -376,6 +436,11 @@ export class Room {
       const entry = answers.get(player.id);
       let correct = false;
       let points = 0;
+      if (step.authorId === player.id) {
+        player.score += WHOIS_AUTHOR_POINTS;
+        player.last = { stepId: step.id, answered: false, author: true, choice: null, correct: false, points: WHOIS_AUTHOR_POINTS };
+        continue;
+      }
       if (entry && step.game === "poll") {
         correct = majority.includes(entry.choice);
         points = correct ? POLL_POINTS : 0;
@@ -423,6 +488,19 @@ export class Room {
       return { ok: hit, state: this.publicChallengeState(state) };
     }
 
+    if (step.game === "reaction") {
+      if (move.round !== state.round || state.round >= REACTION_ROUNDS) return { ok: false, state: this.publicChallengeState(state) };
+      const ms = Math.round(Number(move.ms));
+      const points = move.early ? 0 : reactionPoints(ms);
+      state.round += 1;
+      state.score += points;
+      state.best = !move.early && Number.isFinite(ms) && ms > 0 ? Math.min(state.best ?? Infinity, ms) : state.best;
+      player.score += points;
+      this.touch();
+      this.maybeFinishEarly();
+      return { ok: true, points, state: this.publicChallengeState(state) };
+    }
+
     // Pixel Perfect
     if (move.round !== state.round || state.round >= CENTER_ROUNDS) return { ok: false, state: this.publicChallengeState(state) };
     const x = Number(move.x);
@@ -440,7 +518,7 @@ export class Room {
   }
 
   publicChallengeState(state) {
-    return { level: state.level, round: state.round, score: state.score, misses: state.misses, lockedUntil: state.lockedUntil };
+    return { level: state.level, round: state.round, score: state.score, misses: state.misses, lockedUntil: state.lockedUntil, best: Number.isFinite(state.best) ? state.best : null };
   }
 
   endChallenge() {
@@ -482,6 +560,7 @@ export class Room {
       startsAt: this.current?.startsAt ?? null,
       endsAt: this.current?.endsAt ?? null,
       playerCount: this.players.size,
+      factCount: [...this.players.values()].filter((p) => p.fact).length,
       answeredCount: this.current?.answers?.size ?? 0,
       teams: this.teamRanking(),
     };
@@ -500,6 +579,7 @@ export class Room {
       seconds: step.seconds,
       prompt: step.prompt,
       options: step.options,
+      optionArt: step.optionArt ?? null,
       images: step.images ?? null,
       visual: step.visual ?? null,
       principle: revealed ? step.principle ?? null : null,
@@ -511,7 +591,7 @@ export class Room {
   }
 
   playerSummary(player, rank) {
-    return { id: player.id, name: player.name, teamId: player.teamId, score: player.score, rank, connected: player.connected, streak: player.streak };
+    return { id: player.id, name: player.name, avatar: player.avatar, teamId: player.teamId, score: player.score, rank, connected: player.connected, streak: player.streak };
   }
 
   hostView() {
@@ -522,6 +602,7 @@ export class Room {
       role: "host",
       players: ranking.map(({ item, rank }) => ({
         ...this.playerSummary(item, rank),
+        hasFact: Boolean(item.fact),
         answered: this.current?.answers?.has(item.id) ?? false,
         challengeScore: challenge?.get(item.id)?.score ?? 0,
         challengeRound: challenge?.get(item.id)?.round ?? 0,
@@ -544,6 +625,8 @@ export class Room {
       me: {
         ...this.playerSummary(player, mine?.rank ?? ranking.length),
         teamRank: team?.rank ?? null,
+        fact: player.fact,
+        isAuthor: this.step?.authorId === playerId,
         answer: answer && this.phase === "question" ? answer.choice : null,
         last: player.last?.stepId === stepId ? player.last : null,
         challenge: challenge ? this.publicChallengeState(challenge) : null,
@@ -561,6 +644,7 @@ export class Room {
       mode: this.settings.mode,
       assign: this.settings.assign,
       teams: this.teams.map((team) => ({ ...team, members: sizes.get(team.id) ?? 0 })),
+      games: GAME_ORDER.filter((id) => this.settings.games[id] > 0),
       playerCount: this.players.size,
     };
   }

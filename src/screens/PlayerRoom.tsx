@@ -19,15 +19,19 @@ import {
   MetricCard,
   Stack,
   Text,
+  TextAreaField,
   TopNavigation,
   useToast,
 } from "@zen-ds/react";
-import { GAMES, NAME_MAX } from "../../shared/games.js";
+import { AVATARS, FACT_MAX, GAMES, NAME_MAX } from "../../shared/games.js";
 import { Answers, optionLetter } from "../components/Answers";
 import { GameBadge, GameMark, PlayerAvatar, QuestionVisual, TeamBadge, TeamMark, Timer, medal } from "../components/common";
 import { PlayerStandings, TeamStandings } from "../components/Standings";
+import { Confetti, EmojiArt, HeroArt } from "../components/Fun";
+import { GameTile, RaisedAvatar, SceneBanner } from "../components/Scene";
 import { CenterGame } from "../games/CenterGame";
 import { ColorGame } from "../games/ColorGame";
+import { ReactionGame } from "../games/ReactionGame";
 import { syncClock, useServerNow } from "../lib/clock";
 import { formatPoints, points } from "../lib/format";
 import { navigate } from "../lib/router";
@@ -111,6 +115,7 @@ export function PlayerRoom({ pin }: { pin: string }) {
         type="compact-alt"
         sticky
         title={playing ? view.me.name : `Phòng ${pin}`}
+        titleLeading={playing ? <PlayerAvatar name={view.me.name} avatar={view.me.avatar} team={team} size="sm" /> : undefined}
         subtitle={playing ? [team ? `Team ${team.name}` : null, points(view.me.score)].filter(Boolean).join(" · ") : undefined}
         banner={connection === "reconnecting" ? <AlertBanner theme="warning" size="sm">Mất kết nối, đang kết nối lại…</AlertBanner> : undefined}
       />
@@ -148,6 +153,9 @@ export function PlayerRoom({ pin }: { pin: string }) {
 function JoinForm({ peek, onJoined }: { peek: RoomPeek; onJoined: (player: StoredPlayer) => void }) {
   const [name, setName] = useState(() => load<string>(LAST_NAME_KEY) ?? "");
   const [teamId, setTeamId] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState(() => AVATARS[Math.floor(Math.random() * AVATARS.length)]);
+  const [fact, setFact] = useState("");
+  const asksFact = peek.games.includes("whois") && peek.phase === "lobby";
   const [error, setError] = useState<string | null>(null);
   const [teamError, setTeamError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -163,7 +171,7 @@ function JoinForm({ peek, onJoined }: { peek: RoomPeek; onJoined: (player: Store
       return;
     }
     setBusy(true);
-    const result = await request<{ ok?: boolean; error?: string; playerId?: string; name?: string }>("player:join", { pin: peek.pin, name, teamId });
+    const result = await request<{ ok?: boolean; error?: string; playerId?: string; name?: string }>("player:join", { pin: peek.pin, name, teamId, avatar, fact: asksFact ? fact : undefined });
     setBusy(false);
     if (!result.ok || !result.playerId) {
       setError(result.error ?? "Chưa vào được phòng, thử lại nhé.");
@@ -179,12 +187,17 @@ function JoinForm({ peek, onJoined }: { peek: RoomPeek; onJoined: (player: Store
         void submit();
       }}
     >
-      <Stack gap="2xs">
-        <Heading level={2} textStyle="Heading/2">
-          Chào bạn! 👋
-        </Heading>
-        <Text tone="base">Nhập tên để vào phòng khởi động khoá học UI/UX.</Text>
-      </Stack>
+      <Card theme="subtle" color="brand">
+        <Stack gap="sm" align="center" paddingY="sm">
+          <HeroArt main={avatar} bits={["👋", "✨", "🎉", "💬"]} size="md" />
+          <Heading level={2} textStyle="Heading/2" align="center">
+            Chào bạn!
+          </Heading>
+          <Text tone="base" align="center">
+            Chọn avatar, nhập tên rồi vào phòng chơi cùng cả lớp.
+          </Text>
+        </Stack>
+      </Card>
       {peek.phase !== "lobby" && (
         <InlineMessage theme="info" title="Trò chơi đang diễn ra">
           Bạn vẫn vào được và chơi tiếp từ câu sau.
@@ -204,13 +217,37 @@ function JoinForm({ peek, onJoined }: { peek: RoomPeek; onJoined: (player: Store
           setError(null);
         }}
       />
+      <FormFieldset legend="Chọn avatar">
+        <Grid columns={4} gap="xs">
+          {AVATARS.map((emoji) => (
+            <Card key={emoji} theme="subtle" color="neutral" spacing="sm" selected={avatar === emoji} onClick={() => setAvatar(emoji)} aria-label={`Chọn avatar ${emoji}`}>
+              <Stack align="center">
+                <EmojiArt size="md">{emoji}</EmojiArt>
+              </Stack>
+            </Card>
+          ))}
+        </Grid>
+      </FormFieldset>
+      {asksFact && (
+        <TextAreaField
+          label="Một điều thú vị về bạn"
+          labelOptional
+          placeholder="VD: Mình từng đi phượt Hà Giang bằng xe đạp"
+          helpText="Cả lớp sẽ đoán xem ai viết điều này trong trò “Ai là ai?”."
+          maxLength={FACT_MAX}
+          characterLimit
+          value={fact}
+          onValueChange={setFact}
+        />
+      )}
       {choose && (
         <FormFieldset legend="Chọn team" error={teamError ?? undefined}>
           <Grid columns={2} gap="sm">
             {peek.teams.map((team) => (
               <Card
                 key={team.id}
-                theme="border"
+                theme="subtle"
+                color={team.card}
                 spacing="sm"
                 selected={teamId === team.id}
                 onClick={() => {
@@ -264,7 +301,16 @@ function PlayerPhase({ view, leaving, onLeave }: { view: PlayerView; leaving: bo
 
 function Lobby({ view, leaving, onLeave }: { view: PlayerView; leaving: boolean; onLeave: () => void }) {
   const [sheet, setSheet] = useState(false);
+  const [fact, setFact] = useState(view.me.fact);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const asksFact = view.sections.some((section) => section.id === "whois");
+  const saveFact = async () => {
+    setSaving(true);
+    const result = await request("player:profile", { fact });
+    setSaving(false);
+    toast({ title: result.error ?? (fact.trim() ? "Đã lưu điều thú vị của bạn" : "Đã xoá điều thú vị") });
+  };
   const team = view.teams.find((t) => t.id === view.me.teamId) ?? null;
   const canSwitch = view.settings.mode === "team" && view.settings.assign === "choose";
   const others = team ? team.members - 1 : 0;
@@ -277,22 +323,62 @@ function Lobby({ view, leaving, onLeave }: { view: PlayerView; leaving: boolean;
 
   return (
     <Stack gap="xl">
-      <Card theme="subtle" color={team?.card ?? "brand"}>
-        <Stack gap="md" align="center" paddingY="md">
-          {team ? <TeamMark team={team} size="2xl" /> : <PlayerAvatar name={view.me.name} size="2xl" />}
-          <Stack gap="xs" align="center">
-            <Heading level={2} textStyle="Heading/2" align="center">{`Chào ${view.me.name}!`}</Heading>
-            {team && <TeamBadge team={team} />}
-            <Text tone="base" align="center">
-              {team ? (others > 0 ? `Bạn ở team ${team.name} cùng ${others} bạn khác.` : `Bạn là người đầu tiên của team ${team.name}.`) : "Bạn chơi cá nhân, cố lên!"}
-            </Text>
-          </Stack>
+      <Stack gap="md">
+        <SceneBanner ratio={2.2} />
+        <div className="overlap-up pop-in">
+          <RaisedAvatar>
+            <PlayerAvatar name={view.me.name} avatar={view.me.avatar} team={team} size="3xl" />
+          </RaisedAvatar>
+        </div>
+        <Stack gap="xs" align="center">
+          <Heading level={2} textStyle="Heading/1" align="center">{`Chào ${view.me.name}!`}</Heading>
+          {team && <TeamBadge team={team} />}
+          <Text tone="base" align="center">
+            {team ? (others > 0 ? `Bạn ở team ${team.name} cùng ${others} bạn khác.` : `Bạn là người đầu tiên của team ${team.name}.`) : "Bạn chơi cá nhân, cố lên!"}
+          </Text>
         </Stack>
-      </Card>
+        <Grid columns={2} gap="sm">
+          <MetricCard type="tile" theme="subtle" color="yellow" label="Người chơi" value={String(view.playerCount)} icon="icon-users-line" iconTheme="yellow" />
+          <MetricCard type="tile" theme="subtle" color="violet" label="Phần chơi" value={String(view.sections.length)} icon="icon-flag-01-line" iconTheme="violet" />
+        </Grid>
+      </Stack>
       <InlineMessage theme="info" title="Đã vào phòng">
         Nhìn lên màn hình chiếu nhé, trò chơi sắp bắt đầu.
       </InlineMessage>
-      {view.settings.mode === "team" && <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} highlightId={view.me.teamId} theme="border" roster />}
+      <Stack gap="md">
+        <Heading level={3} textStyle="Heading/4">
+          Trò chơi hôm nay
+        </Heading>
+        <Grid columns={2} gap="sm">
+          {view.sections.map((section, index) => (
+            <GameTile key={section.id} game={section.id} caption={`Phần ${index + 1}`} />
+          ))}
+        </Grid>
+      </Stack>
+      {asksFact && (
+        <Card theme="flat">
+          <Stack gap="md">
+            <Stack direction="row" gap="xs" align="center">
+              <EmojiArt size="md">🕵️</EmojiArt>
+              <Heading level={3} textStyle="Heading/Subheading" width="fill">
+                Điều thú vị về bạn
+              </Heading>
+            </Stack>
+            <TextAreaField
+              label="Cả lớp sẽ đoán ai viết điều này"
+              placeholder="VD: Mình biết nấu 10 món phở khác nhau"
+              maxLength={FACT_MAX}
+              characterLimit
+              value={fact}
+              onValueChange={setFact}
+            />
+            <Button level="tertiary" size="md" onClick={() => void saveFact()} disabled={saving || fact === view.me.fact}>
+              {saving ? "Đang lưu…" : "Lưu điều thú vị"}
+            </Button>
+          </Stack>
+        </Card>
+      )}
+      {view.settings.mode === "team" && <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} highlightId={view.me.teamId} roster />}
       <Stack gap="sm">
         {canSwitch && (
           <Button level="tertiary" size="lg" onClick={() => setSheet(true)}>
@@ -326,11 +412,9 @@ function Intro({ view }: { view: PlayerView }) {
   if (!game || !view.step) return null;
   return (
     <Stack gap="lg">
-      <Card theme="solid" color={game.hero}>
+      <Card theme="subtle" color="brand">
         <Stack gap="sm" align="center" paddingY="md">
-          <Text as="span" textStyle="Display/1" aria-hidden="true">
-            {game.emoji}
-          </Text>
+          <HeroArt main={game.emoji} bits={game.art} size="md" />
           <Text as="span" textStyle="Body/Base/Medium" tone="base">{`Phần ${view.step.section}/${view.sections.length}`}</Text>
           <Heading level={2} textStyle="Heading/1" align="center">
             {game.title}
@@ -394,6 +478,26 @@ function Question({ view }: { view: PlayerView }) {
     }
   };
 
+  if (view.me.isAuthor) {
+    return (
+      <Stack gap="lg">
+        <Timer startsAt={view.startsAt} endsAt={view.endsAt} />
+        <Card theme="subtle" color="violet">
+          <Stack gap="sm" align="center" paddingY="md">
+            <HeroArt main="🤫" bits={["👀", "❓", "💬", "🕵️"]} size="md" />
+            <Heading level={2} textStyle="Heading/2" align="center">
+              Đây là điều bạn viết!
+            </Heading>
+            <Text tone="base" align="center">
+              Giữ bí mật nhé. Cả lớp đang đoán xem ai đã viết. Bạn được 300 điểm vì đã chia sẻ.
+            </Text>
+          </Stack>
+        </Card>
+        {step.visual && <QuestionVisual visual={step.visual} />}
+      </Stack>
+    );
+  }
+
   return (
     <Stack gap="lg">
       <Timer startsAt={view.startsAt} endsAt={view.endsAt} />
@@ -412,15 +516,17 @@ function Question({ view }: { view: PlayerView }) {
   );
 }
 
+/** Bốn ô thống kê kiểu game: điểm, hạng, team, chuỗi đúng. */
 function MyScore({ view }: { view: PlayerView }) {
   const team = view.teams.find((t) => t.id === view.me.teamId) ?? null;
   return (
     <Grid columns={2} gap="sm">
-      <MetricCard theme="subtle" color="yellow" spacing="sm" size="sm" label="Tổng điểm" value={formatPoints(view.me.score)} icon="icon-trophy-01-solid" iconTheme="yellow" />
-      <MetricCard theme="subtle" color="violet" spacing="sm" size="sm" label="Hạng cá nhân" value={`${view.me.rank}/${view.playerCount}`} icon="icon-award-01-solid" iconTheme="violet" />
-      {team && view.me.teamRank && (
-        <MetricCard theme="subtle" color={team.card} spacing="sm" size="sm" label={`Hạng team ${team.name}`} value={`${view.me.teamRank}/${view.teams.length}`} icon={team.icon} iconTheme={team.theme} />
-      )}
+      <MetricCard type="tile" theme="subtle" color="yellow" label="Tổng điểm" value={formatPoints(view.me.score)} icon="icon-trophy-01-solid" iconTheme="yellow" />
+      <MetricCard type="tile" theme="subtle" color="violet" label="Hạng cá nhân" value={`${view.me.rank}/${view.playerCount}`} icon="icon-award-01-solid" iconTheme="violet" />
+      {team && view.me.teamRank ? (
+        <MetricCard type="tile" theme="subtle" color={team.card} label={`Team ${team.name}`} value={`#${view.me.teamRank}`} icon={team.icon} iconTheme={team.theme} />
+      ) : null}
+      <MetricCard type="tile" theme="subtle" color="orange" label="Chuỗi đúng" value={`${view.me.streak} 🔥`} icon="icon-zap-solid" iconTheme="orange" />
     </Grid>
   );
 }
@@ -429,18 +535,26 @@ function Reveal({ view }: { view: PlayerView }) {
   const step = view.step!;
   const last = view.me.last;
   const isPoll = step.game === "poll";
-  let message: { theme: "positive" | "negative" | "info" | "warning"; title: string; body: string };
-  if (!last?.answered) message = { theme: "warning", title: "Bạn chưa trả lời câu này", body: "Câu sau nhanh tay hơn nhé!" };
-  else if (isPoll && last.correct) message = { theme: "positive", title: `Bạn thuộc số đông! +${last.points}`, body: "Nhiều bạn trong lớp cũng thích giống bạn." };
-  else if (isPoll) message = { theme: "info", title: "Bạn thuộc số ít", body: "Khác biệt cũng là điểm thú vị!" };
-  else if (last.correct) message = { theme: "positive", title: `Chính xác! +${formatPoints(last.points)}`, body: view.me.streak >= 2 ? `Chuỗi ${view.me.streak} câu đúng liên tiếp 🔥` : "Nhanh và đúng, tuyệt lắm!" };
+  let message: { theme: "positive" | "negative" | "info" | "warning"; title: string; body: string; emoji: string };
+  if (last?.author) message = { theme: "positive", title: `+${last.points} điểm chia sẻ`, body: "Cảm ơn bạn đã kể về mình!", emoji: "🤗" };
+  else if (!last?.answered) message = { theme: "warning", title: "Bạn chưa trả lời câu này", body: "Câu sau nhanh tay hơn nhé!", emoji: "⏰" };
+  else if (isPoll && last.correct) message = { theme: "positive", title: `Bạn thuộc số đông! +${last.points}`, body: "Nhiều bạn trong lớp cũng thích giống bạn.", emoji: "🙌" };
+  else if (isPoll) message = { theme: "info", title: "Bạn thuộc số ít", body: "Khác biệt cũng là điểm thú vị!", emoji: "🦄" };
+  else if (last.correct) message = { theme: "positive", title: `Chính xác! +${formatPoints(last.points)}`, body: view.me.streak >= 2 ? `Chuỗi ${view.me.streak} câu đúng liên tiếp 🔥` : "Nhanh và đúng, tuyệt lắm!", emoji: "🎉" };
   else {
     const answer = step.answer ?? 0;
-    message = { theme: "negative", title: "Chưa đúng rồi", body: step.images ? `Đáp án đúng là phương án ${optionLetter(answer)}.` : `Đáp án đúng là ${optionLetter(answer)}: ${step.options?.[answer] ?? ""}` };
+    message = { theme: "negative", title: "Chưa đúng rồi", body: step.images ? `Đáp án đúng là phương án ${optionLetter(answer)}.` : `Đáp án đúng là ${optionLetter(answer)}: ${step.options?.[answer] ?? ""}`, emoji: "😅" };
   }
+  const celebrate = Boolean(last?.correct && !isPoll);
 
   return (
     <Stack gap="lg">
+      {celebrate && <Confetti pieces={28} />}
+      <Stack align="center">
+        <EmojiArt size="xl" float>
+          {message.emoji}
+        </EmojiArt>
+      </Stack>
       <InlineMessage theme={message.theme} title={message.title}>
         {message.body}
       </InlineMessage>
@@ -491,6 +605,8 @@ function Challenge({ view }: { view: PlayerView }) {
           )}
           {step.game === "color" ? (
             <ColorGame stepId={step.id} seed={step.seed!} server={view.me.challenge} running={!over} />
+          ) : step.game === "reaction" ? (
+            <ReactionGame stepId={step.id} seed={step.seed!} server={view.me.challenge} running={!over} />
           ) : (
             <CenterGame stepId={step.id} seed={step.seed!} server={view.me.challenge} running={!over} />
           )}
@@ -503,15 +619,15 @@ function Challenge({ view }: { view: PlayerView }) {
 function Standing({ view }: { view: PlayerView }) {
   return (
     <Stack gap="lg">
-      <Card theme="solid" color="brand">
+      <Card theme="subtle" color="brand">
         <Stack gap="2xs" align="center" paddingY="md">
           <Text tone="base">Bạn đang đứng</Text>
           <Heading level={2} textStyle="Display/2" align="center">{`${medal(view.me.rank, view.me.score) ?? ""} Hạng ${view.me.rank}`.trim()}</Heading>
           <Text textStyle="Body/Extra/Medium" tone="base">{`trên ${view.playerCount} người · ${points(view.me.score)}`}</Text>
         </Stack>
       </Card>
-      {view.settings.mode === "team" && <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} highlightId={view.me.teamId} theme="border" />}
-      <PlayerStandings players={view.top} teams={view.teams} meId={view.me.id} title="Top 5" theme="border" />
+      {view.settings.mode === "team" && <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} highlightId={view.me.teamId} />}
+      <PlayerStandings players={view.top} teams={view.teams} meId={view.me.id} title="Top 5" />
       <Text tone="base" align="center">
         Nhìn lên màn hình chiếu, câu tiếp theo sắp tới…
       </Text>
@@ -522,9 +638,11 @@ function Standing({ view }: { view: PlayerView }) {
 function Final({ view }: { view: PlayerView }) {
   const team = view.teams.find((t) => t.id === view.me.teamId) ?? null;
   const champion = view.settings.mode === "team" ? view.teams[0] : null;
+  const celebrate = view.me.rank <= 3 || (team !== null && champion !== null && team.id === champion.id);
   return (
     <Stack gap="lg">
-      <Card theme="solid" color="yellow">
+      {celebrate && <Confetti />}
+      <Card theme="subtle" color="brand">
         <Stack gap="sm" align="center" paddingY="md">
           <Text as="span" textStyle="Display-Extra/2" aria-hidden="true">
             {medal(view.me.rank, view.me.score) ?? "🎉"}
@@ -540,8 +658,8 @@ function Final({ view }: { view: PlayerView }) {
           {team.id === champion.id ? "Cả team đã chơi rất tốt." : `Team ${champion.name} vô địch lần này.`}
         </InlineMessage>
       )}
-      {view.settings.mode === "team" && <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} highlightId={view.me.teamId} theme="border" />}
-      <PlayerStandings players={view.top} teams={view.teams} meId={view.me.id} title="Top 5 cả lớp" theme="border" />
+      {view.settings.mode === "team" && <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} highlightId={view.me.teamId} />}
+      <PlayerStandings players={view.top} teams={view.teams} meId={view.me.id} title="Top 5 cả lớp" />
       <InlineMessage theme="neutral" title="Hẹn gặp ở buổi học đầu tiên!">
         Cảm ơn bạn đã tham gia khởi động khoá học UI/UX.
       </InlineMessage>

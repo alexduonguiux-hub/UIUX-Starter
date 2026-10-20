@@ -6,32 +6,47 @@ Giao diện dựng hoàn toàn bằng **Zen DS** (`@zen-ds/react`), theme màu B
 
 ## Các trò chơi
 
+Có hai bộ trò chơi. **Bộ làm quen** không cần chuyên môn, dùng cho buổi đầu. **Bộ chuyên môn UI/UX** dùng cho các buổi sau.
+
+**Bộ làm quen**
+
 | Trò chơi | Thời lượng | Cách chơi | Điểm |
 | --- | --- | --- | --- |
-| 🤝 **Đoán số đông** | 12 giây/câu | Chọn 1 trong 2 (Dark mode hay Light mode, Cà phê hay Trà sữa…). Giúp cả lớp làm quen sở thích của nhau. | Chọn giống số đông: 500 |
-| ⚡ **Quiz nhanh UI/UX** | 20 giây/câu | Trắc nghiệm kiến thức nền: WCAG, Fitts, Hick, Auto layout, Persona, lưới 8pt… | Đúng: 500 + tối đa 500 theo tốc độ |
-| 🆚 **A hay B?** | 20 giây/câu | Hai thiết kế, chọn cái tốt hơn. Sau đó hiện nguyên tắc: tương phản, căn lề, phân cấp, Gestalt, thứ bậc nút, vùng chạm. | Đúng: 500 + tối đa 500 theo tốc độ |
-| 🎨 **Mắt thần màu sắc** | 40 giây | Tìm ô khác màu trong lưới. Lưới to dần, màu sát nhau dần. Chạm sai bị khoá 1 giây. | 50 mỗi ô đúng |
-| 🎯 **Pixel Perfect** | 45 giây | Chạm đúng tâm của 5 hình (có cả hình vòng rỗng). | Tối đa 300 mỗi hình |
+| 🤝 **Đoán số đông** | 12 giây/câu | Biển hay núi, cà phê hay trà sữa, team chó hay team mèo… Mỗi lựa chọn có hình minh hoạ. | Chọn giống số đông: 500 |
+| 🕵️ **Ai là ai?** | 15 giây/câu | Khi vào phòng, mỗi bạn viết một điều thú vị về mình. Cả lớp đoán xem ai viết. | Đoán đúng: 500 + tối đa 500 theo tốc độ. Người viết: 300 |
+| 🧩 **Đuổi hình bắt chữ** | 20 giây/câu | Nhìn emoji, đoán thành ngữ, tên phim hoặc món ăn (🐸🕳️ = Ếch ngồi đáy giếng). | Đúng: 500 + tối đa 500 theo tốc độ |
+| 🚦 **Phản xạ nhanh** | 40 giây | Màn hình đỏ thì chờ, chuyển xanh thì chạm thật nhanh. 5 lượt. | Tối đa 200 mỗi lượt, chạm sớm 0 |
+| 🎨 **Mắt thần màu sắc** | 40 giây | Tìm ô khác màu trong lưới, càng lên cao càng khó. | 50 mỗi ô đúng |
+
+**Bộ chuyên môn UI/UX**
+
+| Trò chơi | Thời lượng | Cách chơi |
+| --- | --- | --- |
+| 🧠 **Quiz nhanh UI/UX** | 20 giây/câu | Trắc nghiệm WCAG, Fitts, Hick, Auto layout, Persona, lưới 8pt… |
+| 🆚 **A hay B?** | 20 giây/câu | Chọn thiết kế tốt hơn, rồi xem nguyên tắc: tương phản, căn lề, phân cấp, Gestalt, thứ bậc nút, vùng chạm. |
+| 🎯 **Pixel Perfect** | 45 giây | Chạm đúng tâm của 5 hình. |
+| 🎨 **Mắt thần màu sắc** | 40 giây | Dùng chung với bộ làm quen. |
 
 **Gói chơi gợi ý**
 
-- **Khởi động nhanh (~5 phút):** 2 câu Đoán số đông, 4 câu Quiz, 1 lượt Mắt thần màu sắc.
-- **Trọn bộ (~9 phút):** 3 câu Đoán số đông, 5 câu Quiz, 3 câu A hay B, Mắt thần màu sắc, Pixel Perfect.
-- **Tự chọn:** chọn từng trò và số câu.
+- **Làm quen nhanh (~6 phút):** 2 câu Đoán số đông, 3 câu Ai là ai?, 3 câu Đuổi hình bắt chữ, Phản xạ nhanh.
+- **Làm quen trọn bộ (~8 phút):** thêm câu cho từng trò và Mắt thần màu sắc.
+- **Chuyên môn UI/UX (~8 phút):** 5 câu Quiz, 3 câu A hay B?, Mắt thần màu sắc, Pixel Perfect.
+- **Tự chọn:** chọn từng trò và số câu, từ cả hai bộ.
 
 **Chế độ chơi**
 
 - **Theo team:** 2–6 team (Pixel, Vector, Layer, Grid, Gradient, Kerning). Chia tự động cho đều người, hoặc học viên tự chọn team. Điểm team tính theo trung bình mỗi thành viên (công bằng khi team chênh người) hoặc tổng điểm.
 - **Cá nhân:** chỉ có bảng xếp hạng cá nhân.
 
-Mỗi học viên luôn có điểm cá nhân. Sau mỗi câu có màn công bố đáp án, giải thích và bảng xếp hạng. Cuối buổi có bục nhận giải top 3 và team vô địch.
+Học viên chọn avatar con vật khi vào phòng. Sau mỗi câu có màn công bố đáp án, ô thống kê điểm, hạng và chuỗi đúng, rồi bảng xếp hạng. Có từ 3 team thì màn chiếu hiện biểu đồ "Đường đua các team". Cuối buổi có bục nhận giải top 3, pháo giấy và team vô địch.
 
 ## Cách dùng trong lớp
 
 1. Giảng viên mở trang chủ, bấm **Tạo phòng chơi**, chọn cách chơi và gói trò chơi.
 2. Chiếu màn hình phòng chờ lên máy chiếu: có mã QR, đường link và mã phòng 4 số.
-3. Học viên quét QR (hoặc vào trang chủ, nhập mã phòng), nhập tên. Mất mạng hay khoá màn hình thì mở lại link là vào lại đúng chỗ, giữ nguyên điểm.
+3. Học viên quét QR (hoặc vào trang chủ, nhập mã phòng), chọn avatar, nhập tên và một điều thú vị về mình (cho trò "Ai là ai?"). Mất mạng hay khoá màn hình thì mở lại link là vào lại đúng chỗ, giữ nguyên điểm.
+   "Ai là ai?" chỉ dùng các điều thú vị đã viết trước khi bấm **Bắt đầu**; nếu chưa ai viết, phần này tự bỏ qua. Màn chiếu hiện số bạn đã viết.
 4. Giảng viên bấm **Bắt đầu** và điều khiển từng phần. Câu hỏi tự đóng khi hết giờ hoặc khi mọi người đã trả lời.
 5. Học viên vào muộn vẫn được, chơi tiếp từ câu sau. Giảng viên có thể mời ra khỏi phòng một tên không phù hợp (nút ⋯ cạnh tên).
 
@@ -93,7 +108,8 @@ Toàn bộ câu hỏi nằm trong [`shared/content.js`](shared/content.js):
 
 - `QUIZ`: câu trắc nghiệm, `answer` là vị trí đáp án đúng (bắt đầu từ 0), có thể kèm ô màu hoặc hình SVG.
 - `AB`: cặp thiết kế tốt/chưa tốt dạng SVG, kèm nguyên tắc và giải thích. Server tự xáo vị trí A/B.
-- `POLLS`: câu Đoán số đông, mỗi câu 2 lựa chọn.
+- `POLLS`: câu Đoán số đông, mỗi câu 2 lựa chọn, mỗi lựa chọn có một emoji minh hoạ.
+- `REBUS`: câu Đuổi hình bắt chữ: chuỗi emoji, 4 đáp án, loại (Thành ngữ, Phim, Món ăn).
 
 Luật chơi, thời gian, điểm và gói chơi nằm trong [`shared/games.js`](shared/games.js).
 
@@ -114,15 +130,24 @@ tests/       Kiểm thử logic chơi (node:test)
 npm run check      # TypeScript + luật dùng Zen DS (zen-usage) + kiểm thử logic
 ```
 
+Kiểm tra giao diện đã render trong Chromium (tràn ngang, tên điều khiển, tương phản, kiểu chữ và token Zen, chế độ tối):
+
+```bash
+npm i -D playwright axe-core && npx playwright install chromium
+npm run build && npm start
+npx zen-ds audit http://localhost:3000/ --routes=/,/host --dark
+```
+
+Màn học viên (`/join/<mã>`) báo cảnh báo "no h1": tiêu đề của TopNavigation là heading cấp 1 theo ARIA nhưng công cụ audit chỉ đếm thẻ `h1`. Đây là lệch giữa hai phần của Zen DS, không phải lỗi của game.
+
 ## Ý tưởng mở rộng
 
-Các trò 5–10 phút khác hợp với lớp UI/UX, có thể thêm sau:
+Các trò 5–10 phút khác có thể thêm sau:
 
-- **Vẽ nhanh 60 giây:** mỗi bạn phác một icon theo đề, cả lớp bình chọn.
-- **Sắp xếp quy trình:** kéo các bước Design Thinking hoặc quy trình làm sản phẩm vào đúng thứ tự.
-- **Tìm lỗi UX:** chạm vào chỗ sai trên một màn hình mẫu.
-- **Đoán font:** nhìn chữ mẫu, chọn tên font.
-- **2 sự thật 1 lời nói dối:** mỗi team giới thiệu bản thân, các team khác đoán.
+- **2 sự thật 1 lời nói dối:** mỗi bạn viết 3 câu về mình, cả lớp đoán câu nào là nói dối.
+- **Vẽ nhanh 60 giây:** mỗi bạn phác một hình theo đề, cả lớp bình chọn.
+- **Sắp xếp quy trình:** kéo các bước Design Thinking vào đúng thứ tự (cho bộ chuyên môn).
+- **Tìm lỗi UX:** chạm vào chỗ sai trên một màn hình mẫu (cho bộ chuyên môn).
 
 ## Giấy phép Zen DS
 

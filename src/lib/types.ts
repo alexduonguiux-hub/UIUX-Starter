@@ -11,6 +11,9 @@ export interface TeamStanding extends TeamPreset {
   rank: number;
 }
 
+/** Hình minh hoạ của câu hỏi: ô màu, hình SVG, chuỗi emoji (Đuổi hình bắt chữ) hoặc trích dẫn (Ai là ai?). */
+export type StepVisual = QuizVisual | { type: "emoji"; text: string; caption: string } | { type: "quote"; text: string };
+
 export interface StepView {
   id: string;
   kind: "intro" | "question" | "challenge";
@@ -22,8 +25,10 @@ export interface StepView {
   total?: number;
   prompt?: string;
   options?: string[];
+  /** Emoji minh hoạ cho từng lựa chọn (Đoán số đông) hoặc avatar (Ai là ai?). */
+  optionArt?: string[] | null;
   images?: Array<{ svg: string; alt: string }> | null;
-  visual?: QuizVisual | null;
+  visual?: StepVisual | null;
   principle?: string | null;
   answer?: number | null;
   explain?: string | null;
@@ -43,6 +48,7 @@ export interface CommonView {
   startsAt: number | null;
   endsAt: number | null;
   playerCount: number;
+  factCount: number;
   answeredCount: number;
   teams: TeamStanding[];
 }
@@ -50,6 +56,7 @@ export interface CommonView {
 export interface PlayerSummary {
   id: string;
   name: string;
+  avatar: string;
   teamId: string | null;
   score: number;
   rank: number;
@@ -58,6 +65,7 @@ export interface PlayerSummary {
 }
 
 export interface HostPlayer extends PlayerSummary {
+  hasFact: boolean;
   answered: boolean;
   challengeScore: number;
   challengeRound: number;
@@ -74,14 +82,19 @@ export interface ChallengeState {
   score: number;
   misses: number;
   lockedUntil: number;
+  /** Phản xạ nhanh: thời gian tốt nhất (ms). */
+  best: number | null;
 }
 
 export interface PlayerView extends CommonView {
   role: "player";
   me: PlayerSummary & {
     teamRank: number | null;
+    fact: string;
+    /** Câu "Ai là ai?" đang hỏi về chính bạn này. */
+    isAuthor: boolean;
     answer: number | null;
-    last: { stepId: string; answered: boolean; choice: number | null; correct: boolean; points: number } | null;
+    last: { stepId: string; answered: boolean; author?: boolean; choice: number | null; correct: boolean; points: number } | null;
     challenge: ChallengeState | null;
   };
   top: PlayerSummary[];
@@ -93,5 +106,6 @@ export interface RoomPeek {
   mode: "team" | "solo";
   assign: "auto" | "choose";
   teams: Array<TeamPreset & { members: number }>;
+  games: GameId[];
   playerCount: number;
 }

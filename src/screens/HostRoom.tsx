@@ -4,8 +4,11 @@ import {
   AlertBanner,
   Badge,
   BadgeCounter,
+  BarList,
   Box,
+  Button,
   Card,
+  ChartCard,
   Container,
   DockIcon,
   EmptyState,
@@ -14,17 +17,19 @@ import {
   IconButton,
   InlineMessage,
   List,
-  ListBox,
   ListItem,
   Menu,
+  Shape,
+  SidePanel,
   Stack,
   Stepper,
   Text,
   useToast,
 } from "@zen-ds/react";
-import { CENTER_ROUNDS, GAMES } from "../../shared/games.js";
+import { CENTER_ROUNDS, GAMES, REACTION_ROUNDS } from "../../shared/games.js";
 import { Answers } from "../components/Answers";
-import { GameBadge, GameMark, PlayerAvatar, QuestionVisual, TeamBadge, TeamMark, Timer, medal } from "../components/common";
+import { GameBadge, GameMark, PlayerAvatar, QuestionVisual, TeamBadge, TeamMark, Timer, medal, summaryText } from "../components/common";
+import { Confetti, HeroArt } from "../components/Fun";
 import { JoinQr, useJoinBase } from "../components/JoinQr";
 import { PlayerStandings, TeamStandings } from "../components/Standings";
 import { syncClock, useServerNow } from "../lib/clock";
@@ -160,9 +165,9 @@ function Phase({ view, act }: { view: HostView; act: Act }) {
 function PlayerRow({ player, act, team }: { player: HostPlayer; act: Act; team: HostView["teams"][number] | null }) {
   return (
     <ListItem
-      leading={<PlayerAvatar name={player.name} team={team} />}
+      leading={<PlayerAvatar name={player.name} avatar={player.avatar} team={team} />}
       title={player.name}
-      caption={player.connected ? undefined : "Mất kết nối"}
+      caption={[team ? `Team ${team.name}` : null, player.hasFact ? "Đã viết điều thú vị" : null, player.connected ? null : "Mất kết nối"].filter(Boolean).join(" · ") || undefined}
       trailing={
         <Menu
           align="end"
@@ -174,12 +179,28 @@ function PlayerRow({ player, act, team }: { player: HostPlayer; act: Act; team: 
   );
 }
 
+/** Học viên trong phòng chờ: avatar emoji lớn và tên, hiện ra kiểu "bật" lên khi vừa vào. */
+function PlayerBubble({ player, team }: { player: HostPlayer; team: HostView["teams"][number] | null }) {
+  return (
+    <div className="pop-in">
+      <Stack gap="2xs" align="center" width={88}>
+        <PlayerAvatar name={player.name} avatar={player.avatar} team={team} size="xl" />
+        <Text textStyle="Body/Small/Medium" align="center" truncate tone={player.connected ? "strongest" : "light"}>
+          {player.name}
+        </Text>
+      </Stack>
+    </div>
+  );
+}
+
 function Lobby({ view, act }: { view: HostView; act: Act }) {
   const base = useJoinBase();
   const url = `${base}/join/${view.pin}`;
   const teamMode = view.settings.mode === "team";
   const count = view.playerCount;
   const byName = [...view.players].sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  const [managing, setManaging] = useState(false);
+  const asksFacts = view.sections.some((section) => section.id === "whois");
 
   return (
     <Stack gap="xl">
@@ -202,17 +223,33 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
         </Box>
 
         <Stack gap="md">
-          <Stack direction="row" gap="xs" align="center">
+          <Stack direction="row" gap="xs" align="center" wrap>
             <Heading level={2} textStyle="Heading/4">
               Người chơi
             </Heading>
             {count > 0 && <BadgeCounter value={count} />}
+            {asksFacts && count > 0 && (
+              <Badge theme="violet" background="subtle" leadingIcon={false}>{`🕵️ ${view.factCount}/${count} bạn đã viết điều thú vị`}</Badge>
+            )}
+            <Stack direction="row" width="fill" justify="end">
+              {count > 0 && (
+                <Button level="tertiary" size="sm" startIcon="icon-users-line" onClick={() => setManaging(true)}>
+                  Quản lý người chơi
+                </Button>
+              )}
+            </Stack>
           </Stack>
           {count === 0 ? (
             <Box surface="surface" radius="2xl" padding="xl">
-              <EmptyState size="sm" headingLevel={3} title="Chưa có ai vào phòng" icon="icon-user-plus-line">
-                Học viên quét mã QR hoặc nhập mã phòng. Tên của các bạn sẽ hiện ở đây.
-              </EmptyState>
+              <Stack gap="md" align="center" paddingY="xl">
+                <HeroArt main="📱" bits={["🐶", "🦊", "🐼", "🦄"]} size="md" />
+                <Heading level={3} textStyle="Heading/4" align="center">
+                  Chưa có ai vào phòng
+                </Heading>
+                <Text tone="base" align="center">
+                  Học viên quét mã QR, chọn avatar và nhập tên. Các bạn sẽ hiện ở đây.
+                </Text>
+              </Stack>
             </Box>
           ) : teamMode ? (
             <Grid columns={{ mobile: 1, tablet: 2, desktop: 2 }} gap="md">
@@ -229,11 +266,11 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
                       <Text as="span" textStyle="Body/Small/Medium" tone="base">{`${members.length} người`}</Text>
                     </Stack>
                     {members.length ? (
-                      <List aria-label={`Thành viên team ${team.name}`}>
+                      <Stack direction="row" gap="sm" wrap>
                         {members.map((player) => (
-                          <PlayerRow key={player.id} player={player} act={act} team={team} />
+                          <PlayerBubble key={player.id} player={player} team={team} />
                         ))}
-                      </List>
+                      </Stack>
                     ) : (
                       <Text textStyle="Body/Small/Regular" tone="base">
                         Chưa có thành viên
@@ -245,24 +282,27 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
               })}
             </Grid>
           ) : (
-            <ListBox>
-              <Grid columns={{ mobile: 1, tablet: 2, desktop: 2 }} gap="none">
-                {[byName.filter((_, i) => i % 2 === 0), byName.filter((_, i) => i % 2 === 1)].map((column, index) => (
-                  <List key={index} aria-label={index === 0 ? "Người chơi, cột 1" : "Người chơi, cột 2"}>
-                    {column.map((player) => (
-                      <PlayerRow key={player.id} player={player} act={act} team={null} />
-                    ))}
-                  </List>
+            <Card theme="flat">
+              <Stack direction="row" gap="sm" wrap>
+                {byName.map((player) => (
+                  <PlayerBubble key={player.id} player={player} team={null} />
                 ))}
-              </Grid>
-            </ListBox>
+              </Stack>
+            </Card>
           )}
+          <SidePanel open={managing} onOpenChange={setManaging} title="Quản lý người chơi" description="Mời ra khỏi phòng một tên không phù hợp, hoặc xem ai đã viết điều thú vị.">
+            <List aria-label="Người chơi trong phòng">
+              {byName.map((player) => (
+                <PlayerRow key={player.id} player={player} act={act} team={view.teams.find((t) => t.id === player.teamId) ?? null} />
+              ))}
+            </List>
+          </SidePanel>
         </Stack>
       </Grid>
 
       <ActionBar
         direction="horizontal"
-        summary={count === 0 ? "Chờ học viên vào phòng để bắt đầu" : teamMode ? `${count} người chơi · ${view.teams.length} team` : `${count} người chơi`}
+        summary={summaryText(count === 0 ? "Chờ học viên vào phòng để bắt đầu" : teamMode ? `${count} người chơi · ${view.teams.length} team` : `${count} người chơi`)}
         secondaryAction={teamMode && count > 1 ? { label: "Xáo lại team", onClick: () => act("shuffle") } : undefined}
         primaryAction={{ label: "Bắt đầu", onClick: () => act("next"), disabled: count === 0 }}
       />
@@ -279,11 +319,9 @@ function Intro({ view, act }: { view: HostView; act: Act }) {
     <Stack gap="xl">
       <SectionProgress view={view} />
       <Stack gap="lg" align="center">
-        <Card theme="solid" color={game.hero} maxWidth={760} alignSelf="center">
+        <Card theme="subtle" color="brand" maxWidth={760} alignSelf="center">
           <Stack gap="md" align="center" paddingY="lg" paddingX="2xl">
-            <Text as="span" textStyle="Display-Extra/2" aria-hidden="true">
-              {game.emoji}
-            </Text>
+            <HeroArt main={game.emoji} bits={game.art} size="xl" />
             <Text as="span" textStyle="Body/Extra/Medium" tone="base">{`Phần ${view.step.section}/${view.sections.length}`}</Text>
             {/* zen-allow-h1-style: màn hình chiếu, cả lớp đọc từ xa nên tiêu đề dùng cỡ Display */}
             <Heading level={1} textStyle="Display/2" align="center">
@@ -310,7 +348,7 @@ function Intro({ view, act }: { view: HostView; act: Act }) {
           </Stack>
         </Box>
       </Stack>
-      <ActionBar direction="horizontal" summary="Học viên cũng đang xem hướng dẫn này trên điện thoại" primaryAction={{ label: `Bắt đầu ${game.title}`, onClick: () => act("next") }} />
+      <ActionBar direction="horizontal" summary={summaryText("Học viên cũng đang xem hướng dẫn này trên điện thoại")} primaryAction={{ label: `Bắt đầu ${game.title}`, onClick: () => act("next") }} />
     </Stack>
   );
 }
@@ -342,8 +380,8 @@ function Question({ view, act }: { view: HostView; act: Act }) {
         {!revealed && <Timer startsAt={view.startsAt} endsAt={view.endsAt} size="lg" />}
       </Grid>
       {step.visual && (
-        <Box maxWidth={560} width="fill">
-          <QuestionVisual visual={step.visual} />
+        <Box maxWidth={step.visual.type === "emoji" || step.visual.type === "quote" ? 960 : 560} width="fill">
+          <QuestionVisual visual={step.visual} large />
         </Box>
       )}
       <Answers step={step} state={revealed ? "reveal" : "waiting"} large />
@@ -359,7 +397,7 @@ function Question({ view, act }: { view: HostView; act: Act }) {
       )}
       <ActionBar
         direction="horizontal"
-        summary={revealed ? "Đã công bố đáp án" : "Câu hỏi tự đóng khi hết giờ hoặc khi mọi người đã trả lời"}
+        summary={summaryText(revealed ? "Đã công bố đáp án" : "Câu hỏi tự đóng khi hết giờ hoặc khi mọi người đã trả lời")}
         secondaryAction={revealed ? { label: view.isLastStep ? "Xem kết quả cuối" : "Bỏ qua xếp hạng", onClick: () => act("skip") } : undefined}
         primaryAction={revealed ? { label: "Xem xếp hạng", onClick: () => act("next") } : { label: "Hiện đáp án", onClick: () => act("next") }}
       />
@@ -387,7 +425,8 @@ function Challenge({ view, act }: { view: HostView; act: Act }) {
   if (!step) return null;
   const game = GAMES[step.game];
   const waiting = view.startsAt !== null && now < view.startsAt;
-  const finished = view.players.filter((p) => p.challengeRound >= CENTER_ROUNDS).length;
+  const rounds = step?.game === "reaction" ? REACTION_ROUNDS : CENTER_ROUNDS;
+  const finished = view.players.filter((p) => p.challengeRound >= rounds).length;
 
   return (
     <Stack gap="xl">
@@ -409,18 +448,37 @@ function Challenge({ view, act }: { view: HostView; act: Act }) {
         )}
       </Grid>
       <Text textStyle="Body/Extra/Regular" tone="base">
-        {step.game === "center" ? `Học viên đang chơi trên điện thoại · ${finished}/${view.playerCount} bạn đã xong ${CENTER_ROUNDS} hình` : "Học viên đang chơi trên điện thoại · bảng điểm cập nhật trực tiếp"}
+        {step.game === "center"
+          ? `Học viên đang chơi trên điện thoại · ${finished}/${view.playerCount} bạn đã xong ${CENTER_ROUNDS} hình`
+          : step.game === "reaction"
+            ? `Học viên đang chơi trên điện thoại · ${finished}/${view.playerCount} bạn đã xong ${REACTION_ROUNDS} lượt`
+            : "Học viên đang chơi trên điện thoại · bảng điểm cập nhật trực tiếp"}
       </Text>
       <Grid columns={{ mobile: 1, desktop: view.settings.mode === "team" ? 2 : 1 }} gap="lg">
         <PlayerStandings players={ranked} teams={view.teams} title="Điểm lượt này" caption="10 bạn dẫn đầu" scoreOf={(player) => (player as HostPlayer).challengeScore} />
         {view.settings.mode === "team" && <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} />}
       </Grid>
-      <ActionBar direction="horizontal" summary="Lượt chơi tự kết thúc khi hết giờ" primaryAction={{ label: "Kết thúc lượt chơi", onClick: () => act("next") }} />
+      <ActionBar direction="horizontal" summary={summaryText("Lượt chơi tự kết thúc khi hết giờ")} primaryAction={{ label: "Kết thúc lượt chơi", onClick: () => act("next") }} />
     </Stack>
   );
 }
 
 /* ── Xếp hạng ───────────────────────────────────────── */
+
+/** Đường đua các team: biểu đồ thanh khi có từ 3 team, danh sách khi chỉ có 2. */
+function TeamRace({ view }: { view: HostView }) {
+  if (view.teams.length < 3) return <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} />;
+  return (
+    <ChartCard title="Đường đua các team" headingLevel={2} icon="icon-trophy-01-solid" description={view.settings.teamScore === "avg" ? "Điểm trung bình mỗi thành viên" : "Tổng điểm của team"}>
+      <BarList
+        aria-label="Điểm các team"
+        data={view.teams.map((team) => ({ label: `${medal(team.rank, team.score) ?? `${team.rank}.`} Team ${team.name}`, value: team.score }))}
+        format={formatPoints}
+        headers={{ label: "Team", value: "Điểm" }}
+      />
+    </ChartCard>
+  );
+}
 
 function Leaderboard({ view, act }: { view: HostView; act: Act }) {
   const teamMode = view.settings.mode === "team";
@@ -443,15 +501,22 @@ function Leaderboard({ view, act }: { view: HostView; act: Act }) {
         </Stack>
       </Stack>
       <Grid columns={{ mobile: 1, desktop: teamMode ? 2 : 1 }} gap="lg">
-        {teamMode && <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} />}
+        {teamMode && <TeamRace view={view} />}
         <PlayerStandings players={view.players.slice(0, 10)} teams={view.teams} caption={view.players.length > 10 ? "10 bạn dẫn đầu" : undefined} />
       </Grid>
-      <ActionBar direction="horizontal" summary={view.isLastStep ? "Đây là lượt cuối cùng" : undefined} primaryAction={{ label: view.isLastStep ? "Xem kết quả cuối" : "Tiếp tục", onClick: () => act("next") }} />
+      <ActionBar direction="horizontal" summary={summaryText(view.isLastStep ? "Đây là lượt cuối cùng" : undefined)} primaryAction={{ label: view.isLastStep ? "Xem kết quả cuối" : "Tiếp tục", onClick: () => act("next") }} />
     </Stack>
   );
 }
 
 /* ── Kết quả cuối ───────────────────────────────────── */
+
+/** Bục nhận giải: chiều cao và màu của từng bậc. */
+const PODIUM = [
+  { height: 120, fill: "support-yellow-solid", tone: "on-brights" },
+  { height: 88, fill: "support-cyan-solid", tone: "on-colors" },
+  { height: 64, fill: "support-orange-solid", tone: "on-colors" },
+] as const;
 
 function Final({ view, act }: { view: HostView; act: Act }) {
   const teamMode = view.settings.mode === "team";
@@ -462,9 +527,10 @@ function Final({ view, act }: { view: HostView; act: Act }) {
 
   return (
     <Stack gap="xl">
-      <Card theme="solid" color="brand">
-        <Stack gap="md" align="center" paddingY="lg">
-          <DockIcon theme="emoji" emoji="🏆" size="2xl" label="Cúp" />
+      <Confetti />
+      <Card theme="subtle" color="brand">
+        <Stack gap="sm" align="center" paddingY="sm">
+          <HeroArt main="🏆" bits={["🎉", "⭐", "🎊", "✨"]} size="md" />
           {/* zen-allow-h1-style: màn hình chiếu, cả lớp đọc từ xa nên tiêu đề dùng cỡ Display */}
           <Heading level={1} textStyle="Display/2" align="center">
             Kết quả chung cuộc
@@ -479,23 +545,30 @@ function Final({ view, act }: { view: HostView; act: Act }) {
       </Card>
 
       {podium.length > 0 && (
-        <Grid columns={{ mobile: 1, tablet: order.length, desktop: order.length }} gap="md" align="end">
+        <Grid columns={order.length} gap="md" align="end" maxWidth={960} alignSelf="center" width="fill">
           {order.map((player) => {
             const team = view.teams.find((t) => t.id === player.teamId) ?? null;
+            const step = PODIUM[player.rank - 1] ?? PODIUM[2];
             return (
-              <Card key={player.id} theme="subtle" color={player.rank === 1 ? "yellow" : player.rank === 2 ? "cyan" : "orange"} spacing="md">
-                <Stack gap="sm" align="center" paddingY={player.rank === 1 ? "xl" : "md"}>
-                  <Text as="span" textStyle="Display/2" aria-hidden="true">
-                    {medal(player.rank, player.score) ?? `${player.rank}`}
-                  </Text>
-                  <PlayerAvatar name={player.name} team={team} size={player.rank === 1 ? "2xl" : "xl"} />
-                  <Heading level={2} textStyle="Heading/3" align="center">
-                    {player.name}
-                  </Heading>
-                  {team && <TeamBadge team={team} />}
-                  <Text textStyle="Heading/4" tabularNumbers>{`${formatPoints(player.score)} điểm · Hạng ${player.rank}`}</Text>
-                </Stack>
-              </Card>
+              <Stack key={player.id} gap="sm" align="center">
+                <Text as="span" textStyle="Display/2" aria-hidden="true">
+                  {medal(player.rank, player.score) ?? `${player.rank}`}
+                </Text>
+                <PlayerAvatar name={player.name} avatar={player.avatar} team={team} size={player.rank === 1 ? "3xl" : "2xl"} />
+                <Heading level={2} textStyle="Heading/3" align="center">
+                  {player.name}
+                </Heading>
+                {team && <TeamBadge team={team} />}
+                <Text textStyle="Heading/4" tabularNumbers>{`${formatPoints(player.score)} điểm`}</Text>
+                <Box width="fill" height={step.height} radiusTopLeft="2xl" radiusTopRight="2xl" clip>
+                  <Shape position="absolute" constraintX="left-right" constraintY="top-bottom" type="rectangle" fill={step.fill} />
+                  <Stack position="absolute" constraintX="left-right" constraintY="center" align="center">
+                    <Text as="span" textStyle="Display/1" tone={step.tone} align="center">
+                      {player.rank}
+                    </Text>
+                  </Stack>
+                </Box>
+              </Stack>
             );
           })}
         </Grid>
@@ -508,7 +581,7 @@ function Final({ view, act }: { view: HostView; act: Act }) {
 
       <ActionBar
         direction="horizontal"
-        summary="Cảm ơn cả lớp! Hẹn gặp ở buổi học đầu tiên."
+        summary={summaryText("Cảm ơn cả lớp! Hẹn gặp ở buổi học đầu tiên.")}
         secondaryAction={{ label: "Tạo phòng mới", onClick: () => navigate("/host") }}
         primaryAction={{ label: "Chơi lại với lớp này", onClick: () => act("restart") }}
       />

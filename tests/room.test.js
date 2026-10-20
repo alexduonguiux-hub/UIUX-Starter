@@ -1,7 +1,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Room, cleanName, normalizeSettings } from "../server/room.js";
-import { CENTER_ROUNDS, COLOR_POINTS, POLL_POINTS, answerPoints, centerPoints, centerTargets, colorLevel, seededRandom } from "../shared/games.js";
+import {
+  AVATARS,
+  CENTER_ROUNDS,
+  COLOR_POINTS,
+  POLL_POINTS,
+  REACTION_MAX,
+  REACTION_ROUNDS,
+  WHOIS_AUTHOR_POINTS,
+  answerPoints,
+  centerPoints,
+  centerTargets,
+  colorLevel,
+  reactionPoints,
+  seededRandom,
+} from "../shared/games.js";
 
 /** Phòng với đồng hồ giả để kiểm soát thời gian. */
 function makeRoom(settings) {
@@ -190,5 +204,89 @@ test("cả buổi chơi đi hết tới kết quả cuối, chơi lại thì xo�
   room.restart();
   assert.equal(room.phase, "lobby");
   assert.equal(player.score, 0);
+  room.dispose();
+});
+
+test("ai là ai: câu hỏi lấy từ điều thú vị, người viết không trả lời và được điểm chia sẻ", () => {
+  const { room } = makeRoom({ mode: "solo", pack: "custom", games: { whois: 3 } });
+  const an = room.join({ name: "An", fact: "Mình từng nuôi 5 con mèo" }).player;
+  const binh = room.join({ name: "Bình", fact: "Mình biết đánh đàn bầu" }).player;
+  const chi = room.join({ name: "Chi" }).player;
+  room.start();
+  const step = goToStep(room, "whois", "question");
+  const author = step.authorId === an.id ? an : binh;
+  const guessers = [an, binh, chi].filter((p) => p.id !== author.id);
+  assert.equal(step.total, 2, "chỉ 2 bạn viết điều thú vị");
+  assert.ok(step.options.includes(author.name));
+  assert.equal(room.hostView().step.answer, null, "chưa công bố thì không lộ người viết");
+  assert.equal(room.playerView(author.id).me.isAuthor, true);
+  assert.equal(room.playerView(guessers[0].id).me.isAuthor, false);
+  assert.ok(room.answer(author.id, step.id, step.answer).error, "người viết không được trả lời");
+  room.answer(guessers[0].id, step.id, step.answer);
+  room.answer(guessers[1].id, step.id, (step.answer + 1) % step.options.length);
+  assert.equal(room.phase, "question");
+  room.next();
+  assert.equal(author.score, WHOIS_AUTHOR_POINTS);
+  assert.equal(guessers[0].score, 1000);
+  assert.equal(guessers[1].score, 0);
+  assert.equal(room.playerView(author.id).me.last.author, true);
+  room.dispose();
+});
+
+test("ai là ai: bỏ qua phần này khi chưa ai viết điều thú vị", () => {
+  const { room } = makeRoom({ mode: "solo", pack: "custom", games: { whois: 3, poll: 1 } });
+  room.join({ name: "An" });
+  room.join({ name: "Bình" });
+  room.start();
+  assert.ok(room.steps.every((step) => step.game !== "whois"));
+  room.dispose();
+});
+
+test("đuổi hình bắt chữ và đoán số đông có hình minh hoạ", () => {
+  const { room } = makeRoom({ mode: "solo", pack: "custom", games: { rebus: 1, poll: 1 } });
+  room.join({ name: "An" });
+  room.start();
+  const poll = goToStep(room, "poll", "question");
+  assert.equal(room.hostView().step.optionArt.length, 2);
+  assert.equal(poll.options.length, 2);
+  room.next();
+  const rebus = goToStep(room, "rebus", "question");
+  const view = room.hostView().step;
+  assert.equal(view.visual.type, "emoji");
+  assert.equal(view.options.length, 4);
+  assert.equal(view.answer, null);
+  assert.ok(Number.isInteger(rebus.answer));
+  room.dispose();
+});
+
+test("phản xạ nhanh: chạm sớm hoặc đoán mò được 0, nhanh được nhiều điểm, 5 lượt là xong", () => {
+  assert.equal(reactionPoints(200), REACTION_MAX);
+  assert.equal(reactionPoints(1000), 0);
+  assert.equal(reactionPoints(50), 0);
+  assert.ok(reactionPoints(400) > reactionPoints(600));
+  const { room, advance } = makeRoom({ mode: "solo", pack: "custom", games: { reaction: 1 } });
+  const player = room.join({ name: "Nhanh" }).player;
+  room.start();
+  const step = goToStep(room, "reaction", "challenge");
+  advance(3_100);
+  assert.equal(room.challengeMove(player.id, step.id, { round: 0, early: true }).points, 0);
+  assert.equal(room.challengeMove(player.id, step.id, { round: 1, ms: 240 }).points, REACTION_MAX);
+  assert.equal(room.challengeMove(player.id, step.id, { round: 1, ms: 240 }).ok, false, "không chơi lại lượt cũ");
+  for (let round = 2; round < REACTION_ROUNDS; round += 1) room.challengeMove(player.id, step.id, { round, ms: 400 });
+  assert.equal(player.score, REACTION_MAX + 3 * reactionPoints(400));
+  assert.equal(room.publicChallengeState(room.current.challenge.get(player.id)).best, 240);
+  room.dispose();
+});
+
+test("hồ sơ: avatar hợp lệ, điều thú vị chỉ đổi được trước khi bắt đầu", () => {
+  const { room } = makeRoom({ mode: "solo", pack: "custom", games: { poll: 1 } });
+  const player = room.join({ name: "An", avatar: "🦄" }).player;
+  assert.equal(player.avatar, "🦄");
+  assert.ok(AVATARS.includes(room.join({ name: "Bình", avatar: "💣" }).player.avatar), "avatar lạ được thay bằng avatar có sẵn");
+  assert.ok(room.setProfile(player.id, { fact: "  Mình   thích   mèo  " }).ok);
+  assert.equal(player.fact, "Mình thích mèo");
+  assert.ok(room.setProfile(player.id, { avatar: "💣" }).error);
+  room.start();
+  assert.ok(room.setProfile(player.id, { fact: "đổi" }).error);
   room.dispose();
 });

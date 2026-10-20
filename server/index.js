@@ -153,7 +153,7 @@ io.on("connection", (socket) => {
   socket.on("player:join", (payload, ack) => {
     const room = rooms.get(String(payload?.pin ?? ""));
     if (!room) return reply(ack, { error: "Không tìm thấy phòng. Kiểm tra lại mã phòng nhé." });
-    const result = room.join({ name: payload?.name, teamId: payload?.teamId });
+    const result = room.join({ name: payload?.name, teamId: payload?.teamId, avatar: payload?.avatar, fact: payload?.fact });
     if (result.error) return reply(ack, { error: result.error });
     reply(ack, { ok: true, playerId: result.player.id, name: result.player.name });
     attachPlayer(socket, room, result.player);
@@ -178,6 +178,12 @@ io.on("connection", (socket) => {
     const ctx = playerContext();
     if (!ctx) return reply(ack, { error: "Bạn chưa vào phòng." });
     reply(ack, ctx.room.setTeam(ctx.playerId, String(payload?.teamId ?? "")));
+  });
+
+  socket.on("player:profile", (payload, ack) => {
+    const ctx = playerContext();
+    if (!ctx) return reply(ack, { error: "Bạn chưa vào phòng." });
+    reply(ack, ctx.room.setProfile(ctx.playerId, { avatar: payload?.avatar, fact: payload?.fact }));
   });
 
   socket.on("player:answer", (payload, ack) => {
