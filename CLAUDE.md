@@ -9,6 +9,7 @@ Web game khởi động cho học viên UI/UX: server Express + Socket.io (`serv
 - `ZenProvider` ở `src/App.tsx`: màn điện thoại dùng `typography="mobile"`; màn chiếu (`/host/:pin`) dùng `"popular"`, thang chữ lớn nhất, để cuối lớp đọc được; trang tạo phòng dùng `"dashboard"`.
   Không dùng `brand-s1`/`brand-s2`: chữ trắng trên nút hồng Zen chỉ đạt 2.96:1.
 - Danh sách (`List`) không có lề hai bên: luôn đặt trong `ListBox` (hoặc hộp có padding từ `xl`).
+- Không sửa gói Zen DS. Hai token chưa đạt WCAG được đặt lại trong `src/app.css`, cùng bộ chọn khối màu sáng của Zen: chữ phụ `content-neutral-light` (pha 35% bậc alpha-11, 4.67–4.88:1) và vòng focus `focus-accent-solid` (brand-10, từ 3.72:1). Chế độ tối giữ nguyên vì đã đạt.
 - Không commit file nào của Zen DS, token hay licence key. Gói đến từ registry riêng (`.npmrc`).
 
 ## Hình minh hoạ
@@ -31,6 +32,8 @@ Web game khởi động cho học viên UI/UX: server Express + Socket.io (`serv
 ## Bố cục desktop
 
 - Màn chiếu nằm gọn một khung 16:9, không cuộn: thanh trên · (tiến trình) · sân khấu `host-main` · ActionBar. Sân khấu hai cột khi có hai loại nội dung (`split` 5/7, `board` 7/5, `half`).
+- Màn chiếu luôn chế độ sáng (laptop để tối thì máy chiếu vẫn sáng). Trên 7 phần chơi thì tiến trình là một dòng "Phần x/y" kèm thanh, thay cho Stepper.
+- Đường đua các team tự vẽ (`.race`), mỗi thanh theo màu của team. Phòng chờ: thẻ team tự chia cột (tối thiểu 240px), lớp trên 12 bạn dùng avatar nhỏ hơn.
 - Kiểm tra ở 1280×720, 1366×640 và 1920×1080. Dưới 820px chiều cao bỏ thanh tiến trình; dưới 760px dùng chế độ gọn (tiêu đề nhỏ một bậc, thẻ đáp án `dense`). Mã QR, bục và hình minh hoạ co theo chiều cao.
 - Trang chủ và trang tạo phòng chia hai cột từ 1024px. Màn học viên trên laptop giữ một cột giữa màn hình. Bố cục điện thoại giữ nguyên.
 

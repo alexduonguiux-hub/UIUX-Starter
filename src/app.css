@@ -694,3 +694,76 @@
 .emoji-seq .emoji {
   flex-wrap: nowrap;
 }
+
+/* ── Tương phản trong sản phẩm này (không sửa gói Zen DS) ──
+ * Chữ phụ content-neutral-light của Zen (đen 48.6%) chỉ đạt 3.74–3.79:1. Pha 35% bậc alpha-11 cho đen ≈ 55.8%:
+ * 4.88:1 trên trắng, 4.83:1 trên canvas, 4.67:1 trên nền xám EBEBEB (WCAG 1.4.3 cần 4.5:1), vẫn nhạt hơn chữ base (7.89:1).
+ * Vòng focus brand-9 chỉ đạt 2.76:1 trên canvas; brand-10 đạt từ 3.72:1 (WCAG 1.4.11 cần 3:1).
+ * Cùng bộ chọn với khối màu sáng của Zen để ghi đè đúng chỗ; chế độ tối của Zen đã đạt nên giữ nguyên.
+ */
+:root,
+[data-theme="light"] {
+  --zen-color-content-neutral-light: color-mix(in srgb, var(--zen-light-neutral-alpha-11) 35%, var(--zen-light-neutral-alpha-10));
+  --zen-color-focus-accent-solid: var(--zen-light-brand-10);
+}
+
+/* ── Đường đua các team: thanh theo màu của từng team ── */
+.race {
+  display: flex;
+  flex-direction: column;
+  gap: var(--zen-spacing-gap-medium);
+}
+
+.race__row {
+  display: flex;
+  align-items: center;
+  gap: var(--zen-spacing-gap-small);
+}
+
+.race__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--zen-spacing-gap-2-xsmall);
+}
+
+.race__label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--zen-spacing-gap-small);
+  min-width: 0;
+}
+
+.race__track {
+  height: calc(var(--zen-spacing-gap-small) * 1.5);
+  border-radius: var(--zen-corner-radius-rounded);
+  background: var(--zen-color-background-neutral-subtle-default);
+  overflow: hidden;
+}
+
+/* Độ dài thanh là --race (0–1) so với team dẫn đầu; co giãn bằng transform để chuyển động mượt, không đổi bố cục. */
+.race__fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--zen-color-background-accent-solid-default);
+  transform: scaleX(var(--race, 0));
+  transform-origin: left center;
+  transition: transform var(--zen-motion-duration-slow) var(--zen-motion-ease-standard);
+}
+
+.race__fill[data-hue="cyan"] { background: var(--zen-color-background-support-cyan-solid); }
+.race__fill[data-hue="pink"] { background: var(--zen-color-background-support-pink-solid); }
+.race__fill[data-hue="yellow"] { background: var(--zen-color-background-support-yellow-solid); }
+.race__fill[data-hue="green"] { background: var(--zen-color-background-support-green-solid); }
+.race__fill[data-hue="violet"] { background: var(--zen-color-background-support-violet-solid); }
+.race__fill[data-hue="orange"] { background: var(--zen-color-background-support-orange-solid); }
+
+@media (prefers-reduced-motion: reduce) {
+  .race__fill {
+    transition: none;
+  }
+}

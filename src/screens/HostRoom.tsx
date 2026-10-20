@@ -1,10 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import {
   ActionBar,
   AlertBanner,
   Badge,
   BadgeCounter,
-  BarList,
   Box,
   Button,
   Card,
@@ -19,6 +18,7 @@ import {
   List,
   ListItem,
   Menu,
+  ProgressBar,
   SidePanel,
   Stack,
   Stepper,
@@ -175,6 +175,29 @@ function TopBar({ pin, view, act }: { pin: string; view: HostView | null; act: A
 
 function SectionProgress({ view }: { view: HostView }) {
   if (view.sections.length < 2 || !view.section) return null;
+  // Nhiều hơn 7 phần thì Stepper quá chật (nhãn xuống hai dòng): thay bằng một dòng "Phần x/y" và thanh tiến trình.
+  if (view.sections.length > 7) {
+    const current = view.sections[view.section - 1];
+    const next = view.sections[view.section];
+    return (
+      <div className="host-progress">
+        <Stack gap="xs">
+          <Stack direction="row" gap="xs" align="center" wrap>
+            <Text as="span" textStyle="Body/Base/Medium" tone="base">{`Phần ${view.section}/${view.sections.length}`}</Text>
+            <Text as="span" textStyle="Body/Base/Bold">
+              <Emoji>{current.emoji}</Emoji> {current.title}
+            </Text>
+            {next && (
+              <Text as="span" textStyle="Body/Base/Regular" tone="base">
+                · Tiếp theo: <Emoji>{next.emoji}</Emoji> {next.title}
+              </Text>
+            )}
+          </Stack>
+          <ProgressBar value={(view.section / view.sections.length) * 100} theme="accent" aria-label="Tiến trình buổi chơi" />
+        </Stack>
+      </div>
+    );
+  }
   return (
     <div className="host-progress">
       <Stepper
@@ -247,11 +270,11 @@ function PlayerRow({ player, act, team }: { player: HostPlayer; act: Act; team: 
 }
 
 /** Học viên trong phòng chờ: avatar emoji lớn và tên, hiện ra kiểu "bật" lên khi vừa vào. */
-function PlayerBubble({ player, team }: { player: HostPlayer; team: HostView["teams"][number] | null }) {
+function PlayerBubble({ player, team, compact = false }: { player: HostPlayer; team: HostView["teams"][number] | null; compact?: boolean }) {
   return (
     <div className="pop-in">
-      <Stack gap="2xs" align="center" width={88}>
-        <PlayerAvatar name={player.name} avatar={player.avatar} team={team} size="xl" />
+      <Stack gap="2xs" align="center" width={compact ? 72 : 88}>
+        <PlayerAvatar name={player.name} avatar={player.avatar} team={team} size={compact ? "lg" : "xl"} />
         <Text textStyle="Body/Base/Medium" align="center" truncate={2} tone={player.connected ? "strongest" : "light"}>
           {player.name}
         </Text>
@@ -268,6 +291,8 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
   const byName = [...view.players].sort((a, b) => a.name.localeCompare(b.name, "vi"));
   const [managing, setManaging] = useState(false);
   const asksFacts = view.sections.some((section) => section.id === "whois");
+  // Lớp đông (trên 12 bạn): avatar nhỏ hơn một bậc để màn chiếu hiện được nhiều bạn hơn trước khi phải cuộn.
+  const compact = count > 12;
   const height = useViewportHeight();
   const qrSize = Math.round(Math.min(340, Math.max(180, height * (height < 760 ? 0.3 : 0.34))));
 
@@ -354,7 +379,7 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
                       {members.length ? (
                         <Stack direction="row" gap="sm" wrap>
                           {members.map((player) => (
-                            <PlayerBubble key={player.id} player={player} team={team} />
+                            <PlayerBubble key={player.id} player={player} team={team} compact={compact} />
                           ))}
                         </Stack>
                       ) : (
@@ -371,7 +396,7 @@ function Lobby({ view, act }: { view: HostView; act: Act }) {
             <Card theme="flat">
               <Stack direction="row" gap="sm" wrap>
                 {byName.map((player) => (
-                  <PlayerBubble key={player.id} player={player} team={null} />
+                  <PlayerBubble key={player.id} player={player} team={null} compact={compact} />
                 ))}
               </Stack>
             </Card>
@@ -626,17 +651,30 @@ function Challenge({ view, act }: { view: HostView; act: Act }) {
 
 /* ── Xếp hạng ───────────────────────────────────────── */
 
-/** Đường đua các team: biểu đồ thanh khi có từ 3 team, danh sách khi chỉ có 2. */
+/** Đường đua các team: mỗi team một thanh theo màu riêng của team, dài theo điểm so với team dẫn đầu. Chỉ có 2 team thì dùng danh sách. */
 function TeamRace({ view }: { view: HostView }) {
   if (view.teams.length < 3) return <TeamStandings teams={view.teams} scoreMode={view.settings.teamScore} />;
+  const top = Math.max(1, ...view.teams.map((team) => team.score));
   return (
     <ChartCard title="Đường đua các team" headingLevel={2} icon="icon-trophy-01-solid" description={view.settings.teamScore === "avg" ? "Điểm trung bình mỗi thành viên" : "Tổng điểm của team"}>
-      <BarList
-        aria-label="Điểm các team"
-        data={view.teams.map((team) => ({ label: `${team.rank}. Team ${team.name}`, value: team.score }))}
-        format={formatPoints}
-        headers={{ label: "Team", value: "Điểm" }}
-      />
+      <div className="race" role="list" aria-label="Điểm các team">
+        {view.teams.map((team) => (
+          <div key={team.id} className="race__row" role="listitem">
+            <TeamMark team={team} size="sm" />
+            <div className="race__body">
+              <div className="race__label">
+                <Text as="span" textStyle="Body/Base/Medium" truncate>{`${team.rank}. Team ${team.name}`}</Text>
+                <Text as="span" textStyle="Body/Base/Bold" tabularNumbers>
+                  {formatPoints(team.score)}
+                </Text>
+              </div>
+              <div className="race__track" aria-hidden="true">
+                <span className="race__fill" data-hue={team.theme} style={{ "--race": Math.max(0.02, team.score / top) } as CSSProperties} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </ChartCard>
   );
 }

@@ -28,11 +28,13 @@ export function App() {
   const phone = current.screen === "player" || current.screen === "home" || current.screen === "missing";
   // Màn chiếu dùng thang chữ lớn nhất của Zen ("popular") để cuối lớp vẫn đọc được; trang tạo phòng là màn laptop.
   const typography = phone ? "mobile" : current.screen === "host" ? "popular" : "dashboard";
+  // Màn chiếu luôn sáng: laptop để chế độ tối thì máy chiếu cũng tối, khó đọc trong phòng học sáng.
+  const theme = current.screen === "host" ? "light" : "system";
 
   return (
     <ZenProvider
-      key={typography}
-      theme="system"
+      key={`${typography}-${theme}`}
+      theme={theme}
       locale="vi"
       typography={typography}
       density={typography === "dashboard" ? "compact" : "comfortable"}

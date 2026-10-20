@@ -38,7 +38,8 @@ export function Answers({ step, state, chosen = null, onChoose, large = false, d
   const pictures = step.images ?? null;
   const art = step.optionArt ?? null;
   const bigArt = Boolean(art) && (step.game === "poll" || step.game === "truth");
-  const columns = pictures || options.length === 2 ? 2 : { mobile: 1, tablet: 2, desktop: 2 };
+  // Đáp án dạng hình: màn chiếu 2 cột; điện thoại 1 cột để mỗi hình đủ rộng mà đọc được chữ trong hình.
+  const columns = pictures ? (large ? 2 : 1) : options.length === 2 ? 2 : { mobile: 1, tablet: 2, desktop: 2 };
 
   return (
     <Grid columns={columns} gap={large && !dense ? "md" : "sm"}>
